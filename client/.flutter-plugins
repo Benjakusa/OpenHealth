@@ -1,0 +1,20 @@
+# This is a generated file; do not edit or check into version control.
+flutter_plugin_android_lifecycle=/home/benjakusa/.pub-cache/hosted/pub.dev/flutter_plugin_android_lifecycle-2.0.26/
+flutter_secure_storage=/home/benjakusa/.pub-cache/hosted/pub.dev/flutter_secure_storage-9.2.4/
+flutter_secure_storage_linux=/home/benjakusa/.pub-cache/hosted/pub.dev/flutter_secure_storage_linux-1.2.3/
+flutter_secure_storage_macos=/home/benjakusa/.pub-cache/hosted/pub.dev/flutter_secure_storage_macos-3.1.3/
+flutter_secure_storage_web=/home/benjakusa/.pub-cache/hosted/pub.dev/flutter_secure_storage_web-1.2.1/
+flutter_secure_storage_windows=/home/benjakusa/.pub-cache/hosted/pub.dev/flutter_secure_storage_windows-3.1.2/
+local_auth=/home/benjakusa/.pub-cache/hosted/pub.dev/local_auth-2.3.0/
+local_auth_android=/home/benjakusa/.pub-cache/hosted/pub.dev/local_auth_android-1.0.47/
+local_auth_darwin=/home/benjakusa/.pub-cache/hosted/pub.dev/local_auth_darwin-1.4.3/
+local_auth_windows=/home/benjakusa/.pub-cache/hosted/pub.dev/local_auth_windows-1.0.11/
+path_provider=/home/benjakusa/.pub-cache/hosted/pub.dev/path_provider-2.1.5/
+path_provider_android=/home/benjakusa/.pub-cache/hosted/pub.dev/path_provider_android-2.2.15/
+path_provider_foundation=/home/benjakusa/.pub-cache/hosted/pub.dev/path_provider_foundation-2.4.1/
+path_provider_linux=/home/benjakusa/.pub-cache/hosted/pub.dev/path_provider_linux-2.2.1/
+path_provider_windows=/home/benjakusa/.pub-cache/hosted/pub.dev/path_provider_windows-2.3.0/
+printing=/home/benjakusa/.pub-cache/hosted/pub.dev/printing-5.14.3/
+sqflite=/home/benjakusa/.pub-cache/hosted/pub.dev/sqflite-2.4.1/
+sqflite_android=/home/benjakusa/.pub-cache/hosted/pub.dev/sqflite_android-2.4.0/
+sqflite_darwin=/home/benjakusa/.pub-cache/hosted/pub.dev/sqflite_darwin-2.4.1+1/
