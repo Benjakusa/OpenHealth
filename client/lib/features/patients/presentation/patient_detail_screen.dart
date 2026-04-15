@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -40,10 +39,7 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen> {
           }
 
           final age = DateTime.now().difference(patient.dateOfBirth).inDays ~/ 365;
-          List<String> allergies = [];
-          try {
-            allergies = List<String>.from(jsonDecode(patient.allergies ?? '[]'));
-          } catch (_) {}
+          final allergies = patient.allergies;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -235,25 +231,23 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen> {
     );
   }
 
-  Widget _buildInsuranceCard(String? shaJson, String? insuranceJson) {
+  Widget _buildInsuranceCard(Map<String, dynamic>? shaData, Map<String, dynamic>? insuranceData) {
     bool shaActive = false;
     bool insuranceActive = false;
     String? shaNumber;
     String? insuranceName;
 
     try {
-      if (shaJson != null && shaJson.isNotEmpty) {
-        final shaData = jsonDecode(shaJson);
+      if (shaData != null) {
         shaActive = shaData['active'] ?? false;
         shaNumber = shaData['memberNumber'];
       }
     } catch (_) {}
 
     try {
-      if (insuranceJson != null && insuranceJson.isNotEmpty) {
-        final insData = jsonDecode(insuranceJson);
-        insuranceActive = insData['active'] ?? false;
-        insuranceName = insData['provider'];
+      if (insuranceData != null) {
+        insuranceActive = insuranceData['active'] ?? false;
+        insuranceName = insuranceData['provider'];
       }
     } catch (_) {}
 
@@ -418,6 +412,7 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen> {
       if (mounted) {
         final encounters = await database.getEncounters(patientId: patient.id);
         final newEncounter = encounters.first;
+        final encounterId = newEncounter['id'] as String;
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -426,7 +421,7 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen> {
           ),
         );
 
-        context.push('/encounter/${newEncounter.id}');
+        context.push('/encounter/$encounterId');
       }
     } catch (e) {
       if (mounted) {

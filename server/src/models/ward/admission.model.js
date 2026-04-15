@@ -11,7 +11,8 @@ module.exports = (sequelize) => {
     },
     tenantId: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
+      field: 'tenant_id',
       references: {
         model: 'tenants',
         key: 'id'
@@ -19,7 +20,8 @@ module.exports = (sequelize) => {
     },
     patientId: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
+      field: 'patient_id',
       references: {
         model: 'patients',
         key: 'id'
@@ -27,7 +29,8 @@ module.exports = (sequelize) => {
     },
     encounterId: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
+      field: 'encounter_id',
       references: {
         model: 'encounters',
         key: 'id'
@@ -35,7 +38,8 @@ module.exports = (sequelize) => {
     },
     wardId: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
+      field: 'ward_id',
       references: {
         model: 'wards',
         key: 'id'
@@ -43,32 +47,17 @@ module.exports = (sequelize) => {
     },
     bedId: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
+      field: 'bed_id',
       references: {
         model: 'beds',
         key: 'id'
       }
     },
     admissionNumber: {
-      type: DataTypes.STRING(50),
+      type: DataTypes.STRING(255),
       allowNull: false,
       unique: true
-    },
-    admissionType: {
-      type: DataTypes.ENUM('emergency', 'elective', 'transfer', 'daycare'),
-      allowNull: false
-    },
-    admissionReason: {
-      type: DataTypes.TEXT,
-      allowNull: false
-    },
-    presentingComplaint: {
-      type: DataTypes.TEXT,
-      allowNull: true
-    },
-    provisionalDiagnosis: {
-      type: DataTypes.TEXT,
-      allowNull: true
     },
     admissionDate: {
       type: DataTypes.DATE,
@@ -79,82 +68,49 @@ module.exports = (sequelize) => {
       type: DataTypes.DATE,
       allowNull: true
     },
-    dischargeReason: {
-      type: DataTypes.ENUM('discharged_home', 'transferred', 'absconded', 'died', 'referred'),
+    reason: {
+      type: DataTypes.TEXT,
       allowNull: true
+    },
+    diagnosis: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    treatmentPlan: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'treatment_plan'
     },
     dischargeSummary: {
       type: DataTypes.TEXT,
-      allowNull: true
-    },
-    dischargeInstructions: {
-      type: DataTypes.TEXT,
-      allowNull: true
-    },
-    attendingPhysicianId: {
-      type: DataTypes.UUID,
       allowNull: true,
-      references: {
-        model: 'users',
-        key: 'id'
-      }
+      field: 'discharge_summary'
     },
     status: {
-      type: DataTypes.ENUM('admitted', 'in_progress', 'stable', 'critical', 'discharged', 'transferred', 'deceased'),
+      type: DataTypes.STRING(50),
       defaultValue: 'admitted'
-    },
-    bedChargeApplied: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true
-    },
-    billingCycle: {
-      type: DataTypes.ENUM('hourly', 'daily'),
-      defaultValue: 'daily'
-    },
-    specialRequirements: {
-      type: DataTypes.JSONB,
-      defaultValue: [],
-      comment: '["isolation", "Fall_risk", "NBM", "IV_therapy"]'
-    },
-    allergies: {
-      type: DataTypes.JSONB,
-      defaultValue: []
-    },
-    nextOfKin: {
-      type: DataTypes.JSONB,
-      allowNull: true,
-      comment: '{"name": "", "relationship": "", "phone": "", "address": ""}'
-    },
-    createdBy: {
-      type: DataTypes.UUID,
-      allowNull: true
-    },
-    updatedBy: {
-      type: DataTypes.UUID,
-      allowNull: true
     }
   }, {
     tableName: 'admissions',
     timestamps: true,
+    underscored: true,
     indexes: [
-      { fields: ['tenantId'] },
-      { fields: ['patientId'] },
-      { fields: ['encounterId'] },
-      { fields: ['tenantId', 'status'] },
-      { fields: ['tenantId', 'admissionDate'] }
+      { fields: ['tenant_id'] },
+      { fields: ['patient_id'] },
+      { fields: ['encounter_id'] },
+      { fields: ['tenant_id', 'status'] },
+      { fields: ['tenant_id', 'admission_date'] }
     ]
   });
 
   Admission.associate = (models) => {
-    Admission.belongsTo(models.Tenant, { foreignKey: 'tenantId', as: 'tenant' });
-    Admission.belongsTo(models.Patient, { foreignKey: 'patientId', as: 'patient' });
-    Admission.belongsTo(models.Encounter, { foreignKey: 'encounterId', as: 'encounter' });
-    Admission.belongsTo(models.Ward, { foreignKey: 'wardId', as: 'ward' });
-    Admission.belongsTo(models.Bed, { foreignKey: 'bedId', as: 'bed' });
-    Admission.belongsTo(models.User, { foreignKey: 'attendingPhysicianId', as: 'attendingPhysician' });
-    Admission.belongsTo(models.User, { foreignKey: 'createdBy', as: 'creator' });
-    Admission.hasMany(models.NursingNote, { foreignKey: 'admissionId', as: 'nursingNotes' });
-    Admission.hasMany(models.MedicationAdministrationRecord, { foreignKey: 'admissionId', as: 'mar' });
+    Admission.belongsTo(models.Tenant, { foreignKey: { name: 'tenantId', field: 'tenant_id' }, as: 'tenant' });
+    Admission.belongsTo(models.Patient, { foreignKey: { name: 'patientId', field: 'patient_id' }, as: 'patient' });
+    Admission.belongsTo(models.Encounter, { foreignKey: { name: 'encounterId', field: 'encounter_id' }, as: 'encounter' });
+    Admission.belongsTo(models.Ward, { foreignKey: { name: 'wardId', field: 'ward_id' }, as: 'ward' });
+    Admission.belongsTo(models.Bed, { foreignKey: { name: 'bedId', field: 'bed_id' }, as: 'bed' });
+    Admission.hasMany(models.NursingNote, { foreignKey: { name: 'admissionId', field: 'admission_id' }, as: 'nursingNotes' });
+    Admission.hasMany(models.MedicationAdministrationRecord, { foreignKey: { name: 'admissionId', field: 'admission_id' }, as: 'mar' });
   };
 
   return Admission;

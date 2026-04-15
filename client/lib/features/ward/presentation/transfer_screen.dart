@@ -39,7 +39,7 @@ class _TransferScreenState extends ConsumerState<TransferScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await _api.post('/ward/admissions/${widget.admissionId}/transfer', {
+      await _api.post('/ward/admissions/${widget.admissionId}/transfer', data: {
         'newWardId': _selectedWardId,
         'newBedId': _selectedBedId,
         'reason': _reasonController.text,
@@ -134,12 +134,12 @@ class _TransferScreenState extends ConsumerState<TransferScreen> {
               const Text('Target Bed *', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               FutureBuilder(
-                future: _api.get('/ward/beds', queryParams: {'wardId': _selectedWardId, 'status': 'available'}),
+                future: _api.get('/ward/beds', queryParameters: {'wardId': _selectedWardId, 'status': 'available'}),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const LinearProgressIndicator();
                   }
-                  if (!snapshot.hasData || (snapshot.data!['data'] as List).isEmpty) {
+                  if (!snapshot.hasData || (snapshot.data!.data['data'] as List).isEmpty) {
                     return Card(
                       color: Colors.orange[50],
                       child: const Padding(
@@ -154,7 +154,7 @@ class _TransferScreenState extends ConsumerState<TransferScreen> {
                       ),
                     );
                   }
-                  final beds = snapshot.data!['data'] as List;
+                  final beds = snapshot.data!.data['data'] as List;
                   return Wrap(
                     spacing: 8,
                     runSpacing: 8,

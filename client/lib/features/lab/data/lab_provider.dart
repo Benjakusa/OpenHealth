@@ -41,7 +41,7 @@ class LabNotifier extends StateNotifier<LabState> {
   Future<LabOrder?> getOrderById(String id) async {
     try {
       final response = await _api.get('/lab/orders/$id');
-      return LabOrder.fromJson(response);
+      return LabOrder.fromJson(response.data);
     } catch (e) {
       state = state.copyWith(error: e.toString());
       return null;
@@ -50,7 +50,7 @@ class LabNotifier extends StateNotifier<LabState> {
 
   Future<bool> updateOrderStatus(String orderId, String status) async {
     try {
-      await _api.patch('/lab/orders/$orderId', {'status': status});
+      await _api.put('/lab/orders/$orderId', data: {'status': status});
       return true;
     } catch (e) {
       state = state.copyWith(error: e.toString());
@@ -67,7 +67,7 @@ class LabNotifier extends StateNotifier<LabState> {
     state = state.copyWith(loading: true, error: null);
 
     try {
-      await _api.post('/lab/results', {
+      await _api.post('/lab/results', data: {
         'orderId': orderId,
         'results': results.map((r) => r.toJson()).toList(),
         if (notes != null) 'notes': notes,
@@ -108,7 +108,7 @@ class LabNotifier extends StateNotifier<LabState> {
 
   Future<bool> collectSample(String orderId) async {
     try {
-      await _api.patch('/lab/orders/$orderId', {
+      await _api.put('/lab/orders/$orderId', data: {
         'status': 'collected',
         'collectedAt': DateTime.now().toIso8601String(),
       });

@@ -51,8 +51,8 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
 
     setState(() => _isSearchingPatients = true);
     try {
-      final response = await _api.get('/patients', queryParams: {'search': query, 'limit': 10});
-      final List<Patient> patients = (response['data'] as List)
+      final response = await _api.get('/patients', queryParameters: {'search': query, 'limit': 10});
+      final List<Patient> patients = (response.data['data'] as List)
           .map((p) => Patient.fromJson(p))
           .toList();
       setState(() {
@@ -82,7 +82,7 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await _api.post('/ward/admissions', {
+      await _api.post('/ward/admissions', data: {
         'patientId': _selectedPatientId,
         'encounterId': widget.encounterId ?? '',
         'wardId': widget.wardId,
@@ -167,7 +167,7 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
               if (!snapshot.hasData) {
                 return const LinearProgressIndicator();
               }
-              final patient = Patient.fromJson(snapshot.data!['data']);
+              final patient = Patient.fromJson(snapshot.data!.data['data']);
               return Card(
                 child: ListTile(
                   leading: CircleAvatar(
@@ -284,7 +284,7 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
         ),
         const SizedBox(height: 8),
         FutureBuilder(
-          future: _api.get('/ward/beds', queryParams: {'wardId': widget.wardId, 'status': 'available'}),
+          future: _api.get('/ward/beds', queryParameters: {'wardId': widget.wardId, 'status': 'available'}),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const LinearProgressIndicator();
@@ -292,7 +292,7 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
             if (!snapshot.hasData) {
               return const Text('No data');
             }
-            final beds = (snapshot.data!['data'] as List);
+            final beds = (snapshot.data!.data['data'] as List);
             if (beds.isEmpty) {
               return Card(
                 child: Padding(

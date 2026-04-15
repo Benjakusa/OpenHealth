@@ -239,7 +239,7 @@ class _MarList extends ConsumerWidget {
   Map<String, List<MedicationRecord>> _groupByTime(List<MedicationRecord> records) {
     final Map<String, List<MedicationRecord>> grouped = {};
     for (final record in records) {
-      final timeKey = DateFormat('HH:mm').format(record.scheduledTime);
+      final timeKey = record.scheduledTime != null ? DateFormat('HH:mm').format(record.scheduledTime!) : 'N/A';
       grouped.putIfAbsent(timeKey, () => []);
       grouped[timeKey]!.add(record);
     }
@@ -298,14 +298,14 @@ class _MarCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      record.medicationName,
+                      record.medication,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      '${record.dosage} - ${_formatRoute(record.route)}',
+                      '${record.dosage ?? ''} - ${record.route != null ? _formatRoute(record.route!) : ''}',
                       style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
-                    if (record.site != null)
+                    if (record.site != null && record.site!.isNotEmpty)
                       Text(
                         'Site: ${record.site}',
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
@@ -317,7 +317,7 @@ class _MarCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    DateFormat('HH:mm').format(record.scheduledTime),
+                    record.scheduledTime != null ? DateFormat('HH:mm').format(record.scheduledTime!) : 'N/A',
                     style: const TextStyle(fontWeight: FontWeight.w500),
                   ),
                   if (record.administeredTime != null)
@@ -403,6 +403,7 @@ class _AdministerMedicationSheetState extends State<_AdministerMedicationSheet> 
   void initState() {
     super.initState();
     _quantityController.text = widget.record.quantityGiven?.toString() ?? '1';
+    _siteController.text = widget.record.site ?? '';
   }
 
   @override
@@ -417,7 +418,7 @@ class _AdministerMedicationSheetState extends State<_AdministerMedicationSheet> 
     setState(() => _isLoading = true);
 
     try {
-      await _api.post('/ward/mar/${widget.record.id}/administer', {
+      await _api.post('/ward/mar/${widget.record.id}/administer', data: {
         'response': _response,
         'quantityGiven': double.tryParse(_quantityController.text),
         'site': _siteController.text.isNotEmpty ? _siteController.text : null,
@@ -463,14 +464,14 @@ class _AdministerMedicationSheetState extends State<_AdministerMedicationSheet> 
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.record.medicationName,
+                        widget.record.medication,
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        '${widget.record.dosage} - ${widget.record.route}',
+                        '${widget.record.dosage ?? ''} - ${widget.record.route ?? ''}',
                         style: TextStyle(color: Colors.grey[600]),
                       ),
                     ],

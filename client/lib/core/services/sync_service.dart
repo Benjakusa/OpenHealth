@@ -59,11 +59,17 @@ class SyncService {
 
     if (pendingItems.isEmpty) return;
 
-    final changes = pendingItems.map((item) => {
-      'entity': item.entityType,
-      'localId': item.entityId,
-      'action': item.action,
-      'data': item.data,
+    final changes = pendingItems.map((item) {
+      final entityType = item['entityType'] ?? item['entity'];
+      final entityId = item['entityId'] ?? item['localId'];
+      final action = item['action'];
+      final data = item['data'];
+      return {
+        'entity': entityType,
+        'localId': entityId,
+        'action': action,
+        'data': data,
+      };
     }).toList();
 
     try {
@@ -79,16 +85,25 @@ class SyncService {
         final results = response.data['results'] as Map<String, dynamic>;
         
         for (final item in pendingItems) {
-          if (results[item.entityType]?['errors']?.isEmpty ?? true) {
-            await _database.removeSyncQueueItem(item.id);
+          final entityType = item['entityType']?.toString() ?? '';
+          final itemId = item['id'];
+          if (results[entityType]?['errors']?.isEmpty ?? true) {
+            if (itemId is int) {
+              await _database.removeSyncQueueItem(itemId);
+            }
           } else {
-            await _database.incrementSyncRetry(item.id, 'Server returned errors');
+            if (itemId is int) {
+              await _database.incrementSyncRetry(itemId, 'Server returned errors');
+            }
           }
         }
       }
     } on DioException catch (e) {
       for (final item in pendingItems) {
-        await _database.incrementSyncRetry(item.id, e.message ?? 'Network error');
+        final itemId = item['id'];
+        if (itemId is int) {
+          await _database.incrementSyncRetry(itemId, e.message ?? 'Network error');
+        }
       }
       rethrow;
     }
@@ -169,4 +184,4 @@ class SyncStatus {
   });
 }
 
-final syncServiceProvider = SyncService;
+

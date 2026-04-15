@@ -29,6 +29,7 @@ const MedicationAdministrationRecord = require('../models/ward/medicationAdminis
 const ReportTemplate = require('../models/report/reportTemplate.model')(sequelize);
 const ReportSchedule = require('../models/report/reportSchedule.model')(sequelize);
 const Report = require('../models/report/report.model')(sequelize);
+const Prescription = require('../models/pharmacy/prescription.model')(sequelize);
 
 Tenant.hasMany(User, { foreignKey: 'tenantId', as: 'users' });
 User.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
@@ -84,9 +85,17 @@ Admission.belongsTo(Bed, { foreignKey: 'bedId', as: 'bed' });
 Admission.hasMany(NursingNote, { foreignKey: 'admissionId', as: 'nursingNotes' });
 Admission.hasMany(MedicationAdministrationRecord, { foreignKey: 'admissionId', as: 'mar' });
 
+NursingNote.belongsTo(User, { foreignKey: 'nurseId', as: 'nurse' });
+MedicationAdministrationRecord.belongsTo(User, { foreignKey: 'administeredBy', as: 'nurse' });
+
 Tenant.hasMany(ReportTemplate, { foreignKey: 'tenantId', as: 'reportTemplates' });
 ReportTemplate.hasMany(Report, { foreignKey: 'templateId', as: 'reports' });
 Report.belongsTo(ReportTemplate, { foreignKey: 'templateId', as: 'template' });
+
+Tenant.hasMany(Prescription, { foreignKey: 'tenantId', as: 'prescriptions' });
+Prescription.belongsTo(Patient, { foreignKey: 'patientId', as: 'patient' });
+Prescription.belongsTo(Encounter, { foreignKey: 'encounterId', as: 'encounter' });
+Prescription.belongsTo(User, { foreignKey: 'prescriberId', as: 'prescriber' });
 
 module.exports = {
   sequelize,
@@ -110,7 +119,8 @@ module.exports = {
     MedicationAdministrationRecord,
     ReportTemplate,
     ReportSchedule,
-    Report
+    Report,
+    Prescription
   },
   Tenant,
   User,
@@ -131,5 +141,6 @@ module.exports = {
   MedicationAdministrationRecord,
   ReportTemplate,
   ReportSchedule,
-  Report
+  Report,
+  Prescription
 };

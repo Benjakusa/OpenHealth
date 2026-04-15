@@ -44,7 +44,7 @@ class PharmacyNotifier extends StateNotifier<PharmacyState> {
   Future<Prescription?> getPrescriptionById(String id) async {
     try {
       final response = await _api.get('/pharmacy/prescriptions/$id');
-      return Prescription.fromJson(response);
+      return Prescription.fromJson(response.data);
     } catch (e) {
       state = state.copyWith(error: e.toString());
       return null;
@@ -71,7 +71,7 @@ class PharmacyNotifier extends StateNotifier<PharmacyState> {
     state = state.copyWith(loading: true, error: null);
 
     try {
-      final response = await _api.post('/pharmacy/dispense', {
+      final response = await _api.post('/pharmacy/dispense', data: {
         'prescriptionId': prescriptionId,
         'items': items.map((i) => i.toJson()).toList(),
         if (notes != null) 'notes': notes,
@@ -93,7 +93,7 @@ class PharmacyNotifier extends StateNotifier<PharmacyState> {
 
   Future<bool> putOnHold(String prescriptionId, String reason) async {
     try {
-      await _api.patch('/pharmacy/prescriptions/$prescriptionId', {
+      await _api.put('/pharmacy/prescriptions/$prescriptionId', data: {
         'status': 'on_hold',
         'holdReason': reason,
       });

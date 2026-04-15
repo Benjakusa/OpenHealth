@@ -42,7 +42,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
     final isLoading = authState.isLoading;
-    final error = authState.error;
+    final error = authState.error?.toString();
 
     return Scaffold(
       body: SafeArea(
@@ -185,7 +185,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => context.go('/register'),
+                  child: const Text('Create a new facility account'),
+                ),
                 TextButton(
                   onPressed: () => context.go('/setup'),
                   child: const Text('Not your facility? Switch'),

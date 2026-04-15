@@ -80,6 +80,7 @@ module.exports = (sequelize) => {
   }, {
     tableName: 'report_schedules',
     timestamps: true,
+    underscored: true,
     indexes: [
       { fields: ['tenantId'] },
       { fields: ['templateId'] },

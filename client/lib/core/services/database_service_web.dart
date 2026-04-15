@@ -1,4 +1,4 @@
-import 'dart:convert';
+export 'database_service_stub.dart';
 import 'database_service_stub.dart';
 
 class WebDatabaseService implements DatabaseService {
@@ -191,5 +191,3 @@ class WebDatabaseService implements DatabaseService {
   @override
   Future<void> incrementSyncRetry(int id, String error) async {}
 }
-
-DatabaseService createDatabaseService() => WebDatabaseService();

@@ -454,11 +454,11 @@ class _NursingNoteTile extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(note.content),
-          if (note.authorName != null) ...[
+          Text(note.notes),
+          if (note.nurseName != null) ...[
             const SizedBox(height: 4),
             Text(
-              '- ${note.authorName}',
+              '- ${note.nurseName}',
               style: TextStyle(fontSize: 12, color: Colors.grey[600], fontStyle: FontStyle.italic),
             ),
           ],
@@ -566,25 +566,25 @@ class _MedicationTile extends StatelessWidget {
             color: _getStatusColor(record.status),
           ),
           const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  record.medicationName,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      record.medication,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      '${record.dosage ?? ''} - ${record.route ?? ''} - ${record.frequency ?? ''}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
                 ),
-                Text(
-                  '${record.dosage} - ${record.route} - ${record.frequency}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            DateFormat('HH:mm').format(record.scheduledTime),
-            style: const TextStyle(fontWeight: FontWeight.w500),
-          ),
+              ),
+              Text(
+                record.scheduledTime != null ? DateFormat('HH:mm').format(record.scheduledTime!) : 'N/A',
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
         ],
       ),
     );

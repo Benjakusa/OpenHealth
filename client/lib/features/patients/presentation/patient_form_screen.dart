@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/config/theme.dart';
 import '../../../core/config/app_config.dart';
-import '../../../core/services/database_service.dart';
+import '../data/patient_provider.dart';
 
 class PatientFormScreen extends ConsumerStatefulWidget {
   final String? patientId;
@@ -46,16 +46,17 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
       final database = ref.read(databaseServiceProvider);
       final patient = await database.getPatient(widget.patientId!);
       if (patient != null && mounted) {
+        final patientData = PatientData.fromMap(patient);
         setState(() {
-          _firstNameController.text = patient.firstName;
-          _lastNameController.text = patient.lastName;
-          _middleNameController.text = patient.middleName ?? '';
-          _phoneController.text = patient.phone ?? '';
-          _nationalIdController.text = patient.nationalId ?? '';
-          _emailController.text = patient.email ?? '';
-          _dateOfBirth = patient.dateOfBirth;
-          _gender = patient.gender;
-          _county = patient.county;
+          _firstNameController.text = patientData.firstName;
+          _lastNameController.text = patientData.lastName;
+          _middleNameController.text = patientData.middleName ?? '';
+          _phoneController.text = patientData.phone ?? '';
+          _nationalIdController.text = patientData.nationalId ?? '';
+          _emailController.text = patientData.email ?? '';
+          _dateOfBirth = patientData.dateOfBirth;
+          _gender = patientData.gender;
+          _county = patientData.county;
         });
       }
     } finally {

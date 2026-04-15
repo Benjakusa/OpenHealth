@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
@@ -6,7 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 import '../config/environment.dart';
 
-part 'database_service.g.dart';
+part 'database_service_native.g.dart';
 
 class Patients extends Table {
   TextColumn get id => text()();
@@ -350,10 +351,10 @@ class DatabaseService extends _$DatabaseService {
     ));
   }
 
-  Future<List<SyncQueueData>> getPendingSyncItems({int limit = 100}) async {
+  Future<List<SyncQueueData>> getPendingSyncItems({int limitParam = 100}) async {
     return (select(syncQueue)
-      ..where((s) => s.retryCount.isSmallerThan(3))
-      ..limit(limit)
+      ..where((s) => s.retryCount.isSmallerThan(const Constant(3)))
+      ..limit(limitParam)
       ..orderBy([(s) => OrderingTerm.asc(s.createdAt)]))
       .get();
   }
@@ -376,7 +377,7 @@ class DatabaseService extends _$DatabaseService {
     final pendingEncounters = await (select(encounters)..where((e) => e.synced.equals(false))).get();
     final pendingBilling = await (select(billing)..where((b) => b.synced.equals(false))).get();
     final pendingInventory = await (select(inventory)..where((i) => i.synced.equals(false))).get();
-    final pendingSyncQueue = await (select(syncQueue)..where((s) => s.retryCount.isSmallerThan(3))).get();
+    final pendingSyncQueue = await (select(syncQueue)..where((s) => s.retryCount.isSmallerThan(const Constant(3)))).get();
 
     return {
       'pendingPatients': pendingPatients.length,
@@ -388,7 +389,3 @@ class DatabaseService extends _$DatabaseService {
     };
   }
 }
-
-typedef BillingData = Billing$;
-typedef InventoryData = Inventory$;
-typedef SyncQueueData = SyncQueue$;

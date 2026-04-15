@@ -13,6 +13,7 @@ const reportRoutes = require('./report.routes');
 const syncRoutes = require('./sync.routes');
 const paymentRoutes = require('./payment.routes');
 const claimRoutes = require('./claim.routes');
+const pharmacyRoutes = require('./pharmacy.routes');
 
 router.use('/auth', authRoutes);
 router.use('/tenants', tenantRoutes);
@@ -26,5 +27,6 @@ router.use('/reports', reportRoutes);
 router.use('/sync', syncRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/claims', claimRoutes);
+router.use('/pharmacy', pharmacyRoutes);
 
 module.exports = router;

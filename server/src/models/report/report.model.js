@@ -91,6 +91,7 @@ module.exports = (sequelize) => {
   }, {
     tableName: 'reports',
     timestamps: true,
+    underscored: true,
     indexes: [
       { fields: ['tenantId'] },
       { fields: ['category'] },

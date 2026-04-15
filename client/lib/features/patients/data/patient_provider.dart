@@ -10,6 +10,7 @@ class PatientData {
   final String firstName;
   final String lastName;
   final String? middleName;
+  final String? email;
   final String patientNumber;
   final DateTime dateOfBirth;
   final String gender;
@@ -19,6 +20,8 @@ class PatientData {
   final String? address;
   final List<String> allergies;
   final List<String> chronicConditions;
+  final Map<String, dynamic>? sha;
+  final Map<String, dynamic>? insurance;
   final bool isActive;
   final DateTime createdAt;
 
@@ -27,6 +30,7 @@ class PatientData {
     required this.firstName,
     required this.lastName,
     this.middleName,
+    this.email,
     required this.patientNumber,
     required this.dateOfBirth,
     required this.gender,
@@ -36,6 +40,8 @@ class PatientData {
     this.address,
     this.allergies = const [],
     this.chronicConditions = const [],
+    this.sha,
+    this.insurance,
     this.isActive = true,
     required this.createdAt,
   });
@@ -46,6 +52,7 @@ class PatientData {
       firstName: map['firstName'] ?? '',
       lastName: map['lastName'] ?? '',
       middleName: map['middleName'],
+      email: map['email'],
       patientNumber: map['patientNumber'] ?? '',
       dateOfBirth: map['dateOfBirth'] is DateTime 
           ? map['dateOfBirth'] 
@@ -57,6 +64,8 @@ class PatientData {
       address: map['address'],
       allergies: _parseJsonList(map['allergies']),
       chronicConditions: _parseJsonList(map['chronicConditions']),
+      sha: map['sha'] is Map<String, dynamic> ? map['sha'] : null,
+      insurance: map['insurance'] is Map<String, dynamic> ? map['insurance'] : null,
       isActive: map['isActive'] ?? true,
       createdAt: map['createdAt'] is DateTime 
           ? map['createdAt'] 
@@ -69,7 +78,6 @@ class PatientData {
     if (value is List) return value.cast<String>();
     if (value is String) {
       try {
-        final decoded = value;
         return [];
       } catch (_) {
         return [];

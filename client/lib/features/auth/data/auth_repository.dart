@@ -40,45 +40,23 @@ class AuthUser {
   }
 }
 
-class AuthState {
-  final bool isLoading;
-  final AuthUser? user;
-  final String? error;
-
-  AuthState({
-    this.isLoading = false,
-    this.user,
-    this.error,
-  });
-
-  AuthState copyWith({
-    bool? isLoading,
-    AuthUser? user,
-    String? error,
-  }) {
-    return AuthState(
-      isLoading: isLoading ?? this.isLoading,
-      user: user ?? this.user,
-      error: error,
-    );
-  }
-}
-
-class AuthNotifier extends StateNotifier<AuthState> {
-  final ApiService _api;
+class AuthNotifier extends Notifier<AsyncValue<AuthUser?>> {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
-  AuthNotifier(this._api) : super(AuthState()) {
+  @override
+  AsyncValue<AuthUser?> build() {
     _checkAuth();
+    return const AsyncValue.data(null);
   }
 
   Future<void> _checkAuth() async {
-    state = state.copyWith(isLoading: true);
+    state = const AsyncValue.loading();
 
     try {
       final token = await _storage.read(key: 'access_token');
       if (token != null) {
-        final response = await _api.get('/auth/me');
+        final api = ref.read(apiServiceProvider);
+        final response = await api.get('/auth/me');
         if (response.statusCode == 200) {
           final user = AuthUser(
             id: response.data['id'],
@@ -90,45 +68,48 @@ class AuthNotifier extends StateNotifier<AuthState> {
             tenantName: response.data['tenant']?['name'] ?? '',
             package: response.data['tenant']?['package'] ?? 'DAWA',
           );
-          state = AuthState(user: user);
+          state = AsyncValue.data(user);
           await Environment.setTenant(user.tenantId, user.tenantName);
           return;
         }
       }
-    } catch (e) {
+    } catch (e, st) {
       await _storage.delete(key: 'access_token');
       await _storage.delete(key: 'refresh_token');
+      state = AsyncValue.error(e, st);
     }
 
-    state = AuthState();
+    state = const AsyncValue.data(null);
   }
 
   Future<bool> setupTenant(String tenantId) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = const AsyncValue.loading();
 
     try {
-      final response = await _api.get('/tenants/$tenantId');
+      final api = ref.read(apiServiceProvider);
+      final response = await api.get('/tenants/$tenantId');
       if (response.statusCode == 200) {
         await Environment.setTenant(
           response.data['id'],
           response.data['name'],
         );
-        state = state.copyWith(isLoading: false);
+        state = const AsyncValue.data(null);
         return true;
       }
-      state = state.copyWith(isLoading: false, error: 'Invalid Tenant ID');
+      state = AsyncValue.error('Invalid Tenant ID', StackTrace.current);
       return false;
-    } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Connection failed');
+    } catch (e, st) {
+      state = AsyncValue.error('Connection failed', st);
       return false;
     }
   }
 
   Future<bool> login(String email, String password) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = const AsyncValue.loading();
 
     try {
-      final response = await _api.post('/auth/login', data: {
+      final api = ref.read(apiServiceProvider);
+      final response = await api.post('/auth/login', data: {
         'email': email,
         'password': password,
         'tenantId': Environment.tenantId,
@@ -136,34 +117,98 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       if (response.statusCode == 200) {
         final user = AuthUser.fromJson(response.data);
-        await _api.setTokens(response.data['accessToken'], response.data['refreshToken']);
+        await api.setTokens(response.data['accessToken'], response.data['refreshToken']);
         await Environment.setTenant(user.tenantId, user.tenantName);
-        state = AuthState(user: user);
+        state = AsyncValue.data(user);
         return true;
       }
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Invalid credentials',
-      );
+      state = AsyncValue.error('Invalid credentials', StackTrace.current);
+    } catch (e, st) {
+      state = AsyncValue.error('Invalid credentials', st);
     }
     return false;
   }
 
   Future<void> logout() async {
     try {
-      await _api.post('/auth/logout');
+      final api = ref.read(apiServiceProvider);
+      await api.post('/auth/logout');
     } catch (e) {
     } finally {
-      await _api.clearTokens();
+      final api = ref.read(apiServiceProvider);
+      await api.clearTokens();
       await Environment.clearTenant();
-      state = AuthState();
+      state = const AsyncValue.data(null);
+    }
+  }
+
+  Future<({bool success, String? error, String? tenantId})> register({
+    required String tenantName,
+    required String tenantCode,
+    required String tenantEmail,
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String password,
+  }) async {
+    state = const AsyncValue.loading();
+
+    try {
+      final api = ref.read(apiServiceProvider);
+
+      // 1. Create tenant
+      final tenantResponse = await api.post('/tenants', data: {
+        'name': tenantName,
+        'code': tenantCode,
+        'email': tenantEmail,
+      });
+
+      if (tenantResponse.statusCode != 200 && tenantResponse.statusCode != 201) {
+        final String error = tenantResponse.data['message']?.toString() ?? 'Failed to create tenant';
+        state = AsyncValue.error(error, StackTrace.current);
+        return (success: false, error: error, tenantId: null);
+      }
+
+      final String tenantId = tenantResponse.data['tenant']['id'].toString();
+
+      // 2. Register user
+      final registerResponse = await api.post('/auth/register', data: {
+        'firstName': firstName,
+        'lastName': lastName,
+        'email': email,
+        'password': password,
+        'tenantId': tenantId,
+        'role': 'owner',
+      });
+
+      if (registerResponse.statusCode != 200 && registerResponse.statusCode != 201) {
+        final String error = registerResponse.data['message']?.toString() ?? 'Failed to create user';
+        state = AsyncValue.error(error, StackTrace.current);
+        return (success: false, error: error, tenantId: null);
+      }
+
+      // 3. Auto login
+      final loginResponse = await api.post('/auth/login', data: {
+        'email': email,
+        'password': password,
+      });
+
+      if (loginResponse.statusCode == 200) {
+        final user = AuthUser.fromJson(loginResponse.data);
+        await api.setTokens(loginResponse.data['accessToken'], loginResponse.data['refreshToken']);
+        await Environment.setTenant(user.tenantId, user.tenantName);
+        state = AsyncValue.data(user);
+        return (success: true, error: null, tenantId: tenantId);
+      }
+
+      return (success: true, error: null, tenantId: tenantId);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return (success: false, error: e.toString(), tenantId: null);
     }
   }
 }
 
 final apiServiceProvider = Provider<ApiService>((ref) => ApiService());
 
-final authStateProvider = StateNotifierProvider<AuthNotifier, AsyncValue<AuthUser?>>((ref) {
-  return AuthNotifier(ref.read(apiServiceProvider));
-});
+final authStateProvider = NotifierProvider<AuthNotifier, AsyncValue<AuthUser?>>(() => AuthNotifier());

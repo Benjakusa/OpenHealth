@@ -350,7 +350,7 @@ class _BedTile extends StatelessWidget {
             ),
           ),
           Text(
-            bed.bedType,
+            bed.type,
             style: TextStyle(
               fontSize: 10,
               color: Colors.grey[600],
@@ -530,11 +530,11 @@ class _NotesTab extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(note.content),
-                if (note.authorName != null) ...[
+                Text(note.notes),
+                if (note.nurseName != null) ...[
                   const SizedBox(height: 8),
                   Text(
-                    '- ${note.authorName}',
+                    '- ${note.nurseName}',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[600],

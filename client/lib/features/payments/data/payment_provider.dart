@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../api_service.dart';
+import 'package:openhealth/core/services/api_service.dart';
 
 final paymentProvider = StateNotifierProvider<PaymentNotifier, PaymentState>((ref) {
   return PaymentNotifier(ref.read(apiServiceProvider));
@@ -7,7 +7,7 @@ final paymentProvider = StateNotifierProvider<PaymentNotifier, PaymentState>((re
 
 final paymentStatsProvider = FutureProvider<PaymentStats>((ref) async {
   final api = ref.read(apiServiceProvider);
-  return api.get('/payments/stats').then((r) => PaymentStats.fromJson(r));
+  return api.get('/payments/stats').then((r) => PaymentStats.fromJson(r.data as Map<String, dynamic>));
 });
 
 class PaymentNotifier extends StateNotifier<PaymentState> {
@@ -23,19 +23,20 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
     state = state.copyWith(loading: true, error: null);
 
     try {
-      final response = await _api.post('/payments/mpesa/initiate', {
+      final response = await _api.post('/payments/mpesa/initiate', data: {
         'invoiceId': invoiceId,
         'phoneNumber': phoneNumber,
         if (amount != null) 'amount': amount,
       });
 
       state = state.copyWith(loading: false);
+      final data = response.data as Map<String, dynamic>;
 
       return MpesaPaymentResult(
         success: true,
-        checkoutRequestId: response['checkoutRequestId'],
-        merchantRequestId: response['merchantRequestId'],
-        amount: response['amount']?.toDouble() ?? 0,
+        checkoutRequestId: data['checkoutRequestId'],
+        merchantRequestId: data['merchantRequestId'],
+        amount: (data['amount'] as num?)?.toDouble() ?? 0,
       );
     } catch (e) {
       state = state.copyWith(loading: false, error: e.toString());
@@ -46,11 +47,12 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
   Future<MpesaPaymentStatus> checkMpesaStatus(String checkoutRequestId) async {
     try {
       final response = await _api.get('/payments/mpesa/status/$checkoutRequestId');
+      final data = response.data as Map<String, dynamic>;
       return MpesaPaymentStatus(
-        status: response['status'] ?? 'pending',
-        resultCode: response['resultCode']?.toString(),
-        resultDesc: response['resultDesc'],
-        receiptNumber: response['receiptNumber'],
+        status: data['status'] ?? 'pending',
+        resultCode: data['resultCode']?.toString(),
+        resultDesc: data['resultDesc'],
+        receiptNumber: data['receiptNumber'],
       );
     } catch (e) {
       return MpesaPaymentStatus(status: 'error', error: e.toString());
@@ -64,7 +66,7 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
     String? notes,
   }) async {
     try {
-      await _api.post('/payments/cash', {
+      await _api.post('/payments/cash', data: {
         'invoiceId': invoiceId,
         'amount': amount,
         if (collectedBy != null) 'collectedBy': collectedBy,
@@ -86,7 +88,7 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
     String? notes,
   }) async {
     try {
-      await _api.post('/payments/card', {
+      await _api.post('/payments/card', data: {
         'invoiceId': invoiceId,
         'amount': amount,
         'cardType': cardType,
@@ -117,9 +119,10 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
       if (patientId != null) params['patientId'] = patientId;
       if (status != null) params['status'] = status;
 
-      final response = await _api.get('/payments', queryParams: params);
-      final payments = (response['payments'] as List)
-          .map((p) => Payment.fromJson(p))
+      final response = await _api.get('/payments', queryParameters: params);
+      final data = response.data as Map<String, dynamic>;
+      final payments = (data['payments'] as List)
+          .map((p) => Payment.fromJson(p as Map<String, dynamic>))
           .toList();
       return payments;
     } catch (e) {
@@ -131,7 +134,7 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
   Future<Payment?> getPaymentById(String id) async {
     try {
       final response = await _api.get('/payments/$id');
-      return Payment.fromJson(response);
+      return Payment.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       state = state.copyWith(error: e.toString());
       return null;

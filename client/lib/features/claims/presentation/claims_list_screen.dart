@@ -76,24 +76,24 @@ class _ClaimsListScreenState extends ConsumerState<ClaimsListScreen> {
   void _showFilterDialog() {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text('Filter Claims'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildFilterOption(null, 'All Claims'),
-            _buildFilterOption('draft', 'Draft'),
-            _buildFilterOption('submitted', 'Submitted'),
-            _buildFilterOption('pending_approval', 'Pending Approval'),
-            _buildFilterOption('approved', 'Approved'),
-            _buildFilterOption('rejected', 'Rejected'),
+            _buildFilterOption(dialogContext, null, 'All Claims'),
+            _buildFilterOption(dialogContext, 'draft', 'Draft'),
+            _buildFilterOption(dialogContext, 'submitted', 'Submitted'),
+            _buildFilterOption(dialogContext, 'pending_approval', 'Pending Approval'),
+            _buildFilterOption(dialogContext, 'approved', 'Approved'),
+            _buildFilterOption(dialogContext, 'rejected', 'Rejected'),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFilterOption(String? status, String label) {
+  Widget _buildFilterOption(BuildContext dialogContext, String? status, String label) {
     final isSelected = _filterStatus == status;
     return ListTile(
       title: Text(label),
@@ -102,14 +102,14 @@ class _ClaimsListScreenState extends ConsumerState<ClaimsListScreen> {
         groupValue: _filterStatus,
         onChanged: (value) {
           setState(() => _filterStatus = value);
-          Navigator.of(ctx).pop();
+          Navigator.of(dialogContext).pop();
           _refresh();
         },
       ),
       selected: isSelected,
       onTap: () {
         setState(() => _filterStatus = status);
-        Navigator.of(ctx).pop();
+        Navigator.of(dialogContext).pop();
         _refresh();
       },
     );

@@ -11,73 +11,67 @@ module.exports = (sequelize) => {
     },
     tenantId: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
+      field: 'tenant_id',
       references: {
         model: 'tenants',
         key: 'id'
       }
     },
     name: {
-      type: DataTypes.STRING(100),
+      type: DataTypes.STRING(255),
       allowNull: false
     },
     code: {
-      type: DataTypes.STRING(20),
-      allowNull: false
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      unique: true
     },
     type: {
-      type: DataTypes.ENUM('general', 'icu', 'maternity', 'pediatric', 'surgical', 'medical', 'private', 'isolation', 'emergency'),
+      type: DataTypes.STRING(50),
       defaultValue: 'general'
     },
-    floor: {
+    gender: {
       type: DataTypes.STRING(20),
+      defaultValue: 'both'
+    },
+    totalBeds: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      field: 'total_beds'
+    },
+    availableBeds: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      field: 'available_beds'
+    },
+    floor: {
+      type: DataTypes.INTEGER,
       allowNull: true
     },
     building: {
-      type: DataTypes.STRING(50),
+      type: DataTypes.STRING(255),
       allowNull: true
-    },
-    description: {
-      type: DataTypes.TEXT,
-      allowNull: true
-    },
-    genderRestriction: {
-      type: DataTypes.ENUM('male', 'female', 'any'),
-      defaultValue: 'any'
-    },
-    ageRestriction: {
-      type: DataTypes.JSONB,
-      allowNull: true,
-      defaultValue: null,
-      comment: '{"min": 0, "max": 120}'
     },
     status: {
-      type: DataTypes.ENUM('active', 'inactive', 'maintenance'),
+      type: DataTypes.STRING(20),
       defaultValue: 'active'
-    },
-    createdBy: {
-      type: DataTypes.UUID,
-      allowNull: true
-    },
-    updatedBy: {
-      type: DataTypes.UUID,
-      allowNull: true
     }
   }, {
     tableName: 'wards',
     timestamps: true,
+    underscored: true,
     indexes: [
-      { fields: ['tenantId'] },
-      { fields: ['tenantId', 'status'] },
-      { fields: ['tenantId', 'type'] }
+      { fields: ['tenant_id'] },
+      { fields: ['tenant_id', 'status'] },
+      { fields: ['tenant_id', 'type'] }
     ]
   });
 
   Ward.associate = (models) => {
     Ward.belongsTo(models.Tenant, { foreignKey: 'tenantId', as: 'tenant' });
-    Ward.belongsTo(models.User, { foreignKey: 'createdBy', as: 'creator' });
-    Ward.hasMany(models.Bed, { foreignKey: 'wardId', as: 'beds' });
-    Ward.hasMany(models.Admission, { foreignKey: 'wardId', as: 'admissions' });
+    Ward.hasMany(models.Bed, { foreignKey: { name: 'wardId', field: 'ward_id' }, as: 'beds' });
+    Ward.hasMany(models.Admission, { foreignKey: { name: 'wardId', field: 'ward_id' }, as: 'admissions' });
   };
 
   return Ward;

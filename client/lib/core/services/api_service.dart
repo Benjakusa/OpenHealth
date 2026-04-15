@@ -1,6 +1,11 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/environment.dart';
+
+final apiServiceProvider = Provider<ApiService>((ref) {
+  return ApiService();
+});
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();

@@ -57,38 +57,26 @@ class Bed {
   final String id;
   final String wardId;
   final String bedNumber;
-  final String bedType;
-  final String? position;
+  final String type;
   final String status;
-  final List<String> features;
-  final double? hourlyRate;
-  final double? dailyRate;
   final Ward? ward;
 
   Bed({
     required this.id,
     required this.wardId,
     required this.bedNumber,
-    required this.bedType,
-    this.position,
+    required this.type,
     required this.status,
-    required this.features,
-    this.hourlyRate,
-    this.dailyRate,
     this.ward,
   });
 
   factory Bed.fromJson(Map<String, dynamic> json) {
     return Bed(
       id: json['id'],
-      wardId: json['wardId'],
+      wardId: json['wardId'] ?? '',
       bedNumber: json['bedNumber'],
-      bedType: json['bedType'] ?? 'standard',
-      position: json['position'],
+      type: json['type'] ?? 'standard',
       status: json['status'] ?? 'available',
-      features: List<String>.from(json['features'] ?? []),
-      hourlyRate: json['hourlyRate'] != null ? double.tryParse(json['hourlyRate'].toString()) : null,
-      dailyRate: json['dailyRate'] != null ? double.tryParse(json['dailyRate'].toString()) : null,
       ward: json['ward'] != null ? Ward.fromJson(json['ward']) : null,
     );
   }
@@ -103,6 +91,8 @@ class Admission {
   final String admissionNumber;
   final String admissionType;
   final String admissionReason;
+  final String presentingComplaint;
+  final String provisionalDiagnosis;
   final DateTime admissionDate;
   final DateTime? dischargeDate;
   final String? dischargeReason;
@@ -122,6 +112,8 @@ class Admission {
     required this.admissionNumber,
     required this.admissionType,
     required this.admissionReason,
+    this.presentingComplaint = '',
+    this.provisionalDiagnosis = '',
     required this.admissionDate,
     this.dischargeDate,
     this.dischargeReason,
@@ -143,6 +135,8 @@ class Admission {
       admissionNumber: json['admissionNumber'],
       admissionType: json['admissionType'] ?? 'emergency',
       admissionReason: json['admissionReason'],
+      presentingComplaint: json['presentingComplaint'] ?? '',
+      provisionalDiagnosis: json['provisionalDiagnosis'] ?? '',
       admissionDate: DateTime.parse(json['admissionDate']),
       dischargeDate: json['dischargeDate'] != null ? DateTime.parse(json['dischargeDate']) : null,
       dischargeReason: json['dischargeReason'],
@@ -161,30 +155,20 @@ class NursingNote {
   final String admissionId;
   final String patientId;
   final String noteType;
-  final String content;
+  final String notes;
   final Map<String, dynamic>? vitals;
-  final int? painScore;
-  final String? consciousness;
-  final String? mobility;
-  final String priority;
-  final String? shiftType;
   final DateTime createdAt;
-  final String? authorName;
+  final String? nurseName;
 
   NursingNote({
     required this.id,
     required this.admissionId,
     required this.patientId,
     required this.noteType,
-    required this.content,
+    required this.notes,
     this.vitals,
-    this.painScore,
-    this.consciousness,
-    this.mobility,
-    required this.priority,
-    this.shiftType,
     required this.createdAt,
-    this.authorName,
+    this.nurseName,
   });
 
   factory NursingNote.fromJson(Map<String, dynamic> json) {
@@ -192,16 +176,11 @@ class NursingNote {
       id: json['id'],
       admissionId: json['admissionId'],
       patientId: json['patientId'],
-      noteType: json['noteType'] ?? 'observation',
-      content: json['content'],
+      noteType: json['noteType'] ?? 'general',
+      notes: json['notes'] ?? '',
       vitals: json['vitals'],
-      painScore: json['painScore'],
-      consciousness: json['consciousness'],
-      mobility: json['mobility'],
-      priority: json['priority'] ?? 'routine',
-      shiftType: json['shiftType'],
       createdAt: DateTime.parse(json['createdAt']),
-      authorName: json['author'] != null ? '${json['author']['firstName']} ${json['author']['lastName']}' : null,
+      nurseName: json['nurse'] != null ? '${json['nurse']['firstName']} ${json['nurse']['lastName']}' : null,
     );
   }
 }
@@ -210,16 +189,16 @@ class MedicationRecord {
   final String id;
   final String admissionId;
   final String patientId;
-  final String medicationName;
-  final String dosage;
-  final String route;
-  final String frequency;
-  final DateTime scheduledTime;
+  final String medication;
+  final String? dosage;
+  final String? route;
+  final String? frequency;
+  final DateTime? scheduledTime;
+  final DateTime? administeredAt;
   final DateTime? administeredTime;
-  final String status;
-  final double? quantityGiven;
   final String? site;
-  final String? response;
+  final double? quantityGiven;
+  final String status;
   final String? notes;
   final String? nurseName;
 
@@ -227,16 +206,16 @@ class MedicationRecord {
     required this.id,
     required this.admissionId,
     required this.patientId,
-    required this.medicationName,
-    required this.dosage,
-    required this.route,
-    required this.frequency,
-    required this.scheduledTime,
+    required this.medication,
+    this.dosage,
+    this.route,
+    this.frequency,
+    this.scheduledTime,
+    this.administeredAt,
     this.administeredTime,
-    required this.status,
-    this.quantityGiven,
     this.site,
-    this.response,
+    this.quantityGiven,
+    required this.status,
     this.notes,
     this.nurseName,
   });
@@ -246,16 +225,16 @@ class MedicationRecord {
       id: json['id'],
       admissionId: json['admissionId'],
       patientId: json['patientId'],
-      medicationName: json['medicationName'],
+      medication: json['medication'] ?? '',
       dosage: json['dosage'],
-      route: json['route'] ?? 'oral',
-      frequency: json['frequency'] ?? 'OD',
-      scheduledTime: DateTime.parse(json['scheduledTime']),
+      route: json['route'],
+      frequency: json['frequency'],
+      scheduledTime: json['scheduledTime'] != null ? DateTime.parse(json['scheduledTime']) : null,
+      administeredAt: json['administeredAt'] != null ? DateTime.parse(json['administeredAt']) : null,
       administeredTime: json['administeredTime'] != null ? DateTime.parse(json['administeredTime']) : null,
-      status: json['status'] ?? 'scheduled',
-      quantityGiven: json['quantityGiven'] != null ? double.tryParse(json['quantityGiven'].toString()) : null,
       site: json['site'],
-      response: json['response'],
+      quantityGiven: json['quantityGiven']?.toDouble(),
+      status: json['status'] ?? 'scheduled',
       notes: json['notes'],
       nurseName: json['nurse'] != null ? '${json['nurse']['firstName']} ${json['nurse']['lastName']}' : null,
     );
@@ -296,7 +275,7 @@ class Patient {
 final wardsProvider = FutureProvider<List<Ward>>((ref) async {
   final api = ref.read(apiServiceProvider);
   final response = await api.get('/ward/wards');
-  final List<Ward> wards = (response['data'] as List).map((w) => Ward.fromJson(w)).toList();
+  final List<Ward> wards = (response.data['data'] as List).map((w) => Ward.fromJson(w)).toList();
   return wards;
 });
 

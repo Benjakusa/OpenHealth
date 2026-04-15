@@ -119,7 +119,7 @@ class EncounterDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTriageSection(String triageJson) {
+  Widget _buildTriageSection(Map<String, dynamic>? triageData) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -147,7 +147,7 @@ class EncounterDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildVitalsSection(String vitalsJson) {
+  Widget _buildVitalsSection(Map<String, dynamic>? vitalsData) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -175,7 +175,7 @@ class EncounterDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildDiagnosisSection(String diagnosesJson) {
+  Widget _buildDiagnosisSection(List<dynamic>? diagnoses) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -187,7 +187,7 @@ class EncounterDetailScreen extends ConsumerWidget {
               children: [
                 const Row(
                   children: [
-                    Icon(Iconsdiagnosis_outlined, size: 20),
+                    Icon(Icons.medical_information_outlined, size: 20),
                     SizedBox(width: 8),
                     Text(
                       'Diagnoses',
@@ -212,7 +212,7 @@ class EncounterDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPrescriptionsSection(String prescriptionsJson) {
+  Widget _buildPrescriptionsSection(List<dynamic>? prescriptions) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -249,7 +249,7 @@ class EncounterDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildLabOrdersSection(String labOrdersJson) {
+  Widget _buildLabOrdersSection(List<dynamic>? labOrders) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -310,7 +310,7 @@ class EncounterDetailScreen extends ConsumerWidget {
               Expanded(
                 child: FilledButton.icon(
                   onPressed: () => context.push('/encounter/$encounterId/consultation'),
-                  icon: const Icon(Icons.stethoscope),
+                  icon: const Icon(Icons.medical_services_outlined),
                   label: const Text('Start Consultation'),
                 ),
               ),

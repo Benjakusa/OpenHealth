@@ -9,75 +9,41 @@ module.exports = (sequelize) => {
       defaultValue: () => uuidv4(),
       primaryKey: true
     },
-    tenantId: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      references: {
-        model: 'tenants',
-        key: 'id'
-      }
-    },
     wardId: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
+      field: 'ward_id',
       references: {
         model: 'wards',
         key: 'id'
       }
     },
     bedNumber: {
-      type: DataTypes.STRING(20),
+      type: DataTypes.STRING(50),
       allowNull: false
     },
-    bedType: {
-      type: DataTypes.ENUM('standard', 'electric', 'pediatric', 'bariatric', 'icu', 'stretchcher', 'incubator'),
+    type: {
+      type: DataTypes.STRING(50),
       defaultValue: 'standard'
     },
-    position: {
-      type: DataTypes.STRING(20),
-      allowNull: true,
-      comment: 'window, aisle, corner'
-    },
     status: {
-      type: DataTypes.ENUM('available', 'occupied', 'reserved', 'maintenance', 'cleaning'),
+      type: DataTypes.STRING(20),
       defaultValue: 'available'
-    },
-    features: {
-      type: DataTypes.JSONB,
-      defaultValue: [],
-      comment: '["oxygen", "suction", "monitor", "call_bell"]'
-    },
-    hourlyRate: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: true
-    },
-    dailyRate: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: true
-    },
-    createdBy: {
-      type: DataTypes.UUID,
-      allowNull: true
-    },
-    updatedBy: {
-      type: DataTypes.UUID,
-      allowNull: true
     }
   }, {
     tableName: 'beds',
     timestamps: true,
+    underscored: true,
     indexes: [
-      { fields: ['tenantId'] },
-      { fields: ['wardId'] },
-      { fields: ['tenantId', 'status'] }
+      { fields: ['ward_id'] },
+      { fields: ['ward_id', 'bed_number'], unique: true },
+      { fields: ['status'] }
     ]
   });
 
   Bed.associate = (models) => {
-    Bed.belongsTo(models.Tenant, { foreignKey: 'tenantId', as: 'tenant' });
-    Bed.belongsTo(models.Ward, { foreignKey: 'wardId', as: 'ward' });
-    Bed.belongsTo(models.User, { foreignKey: 'createdBy', as: 'creator' });
-    Bed.hasMany(models.Admission, { foreignKey: 'bedId', as: 'admissions' });
+    Bed.belongsTo(models.Ward, { foreignKey: { name: 'wardId', field: 'ward_id' }, as: 'ward' });
+    Bed.hasMany(models.Admission, { foreignKey: { name: 'bedId', field: 'bed_id' }, as: 'admissions' });
   };
 
   return Bed;

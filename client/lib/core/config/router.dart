@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/setup_screen.dart';
+import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/auth_controller.dart';
 import '../../features/patients/presentation/patient_list_screen.dart';
 import '../../features/patients/presentation/patient_detail_screen.dart';
@@ -29,23 +30,24 @@ final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
 
   return GoRouter(
-    initialLocation: '/setup',
+    initialLocation: '/register',
     debugLogDiagnostics: true,
     redirect: (context, state) {
       final isLoggedIn = authState.valueOrNull != null;
       final isSetup = state.matchedLocation == '/setup';
       final isLogin = state.matchedLocation == '/login';
+      final isRegister = state.matchedLocation == '/register';
 
       if (state.matchedLocation == '/') {
         if (!isLoggedIn) return '/login';
         return '/patients';
       }
 
-      if (!isSetup && !isLoggedIn && !isLogin) {
+      if (!isSetup && !isLoggedIn && !isLogin && !isRegister) {
         return '/setup';
       }
 
-      if (isLoggedIn && (isLogin || isSetup)) {
+      if (isLoggedIn && (isLogin || isSetup || isRegister)) {
         return '/patients';
       }
 
@@ -59,6 +61,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const RegisterScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) => MainScaffold(child: child),

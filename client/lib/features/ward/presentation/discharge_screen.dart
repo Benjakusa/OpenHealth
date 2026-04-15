@@ -33,7 +33,7 @@ class _DischargeScreenState extends ConsumerState<DischargeScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await _api.post('/ward/admissions/${widget.admissionId}/discharge', {
+      await _api.post('/ward/admissions/${widget.admissionId}/discharge', data: {
         'dischargeReason': _dischargeReason,
         'dischargeSummary': _summaryController.text,
         'dischargeInstructions': _instructionsController.text,

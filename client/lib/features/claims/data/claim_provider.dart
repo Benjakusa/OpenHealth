@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../api_service.dart';
+import 'package:openhealth/core/services/api_service.dart';
 
 final claimProvider = StateNotifierProvider<ClaimNotifier, ClaimState>((ref) {
   return ClaimNotifier(ref.read(apiServiceProvider));
@@ -21,7 +21,7 @@ class ClaimNotifier extends StateNotifier<ClaimState> {
     state = state.copyWith(loading: true, error: null);
 
     try {
-      final response = await _api.post('/claims/sha', {
+      final response = await _api.post('/claims/sha', data: {
         'invoiceId': invoiceId,
         if (encounterId != null) 'encounterId': encounterId,
         if (diagnosisCodes != null)
@@ -34,13 +34,14 @@ class ClaimNotifier extends StateNotifier<ClaimState> {
       });
 
       state = state.copyWith(loading: false);
+      final data = response.data as Map<String, dynamic>;
 
       return ClaimSubmitResult(
         success: true,
-        claimId: response['claimId'],
-        claimReference: response['claimReference'],
-        shaReference: response['shaReference'],
-        status: response['status'],
+        claimId: data['claimId'],
+        claimReference: data['claimReference'],
+        shaReference: data['shaReference'],
+        status: data['status'],
       );
     } catch (e) {
       state = state.copyWith(loading: false, error: e.toString());
@@ -54,18 +55,19 @@ class ClaimNotifier extends StateNotifier<ClaimState> {
     String? notes,
   }) async {
     try {
-      final response = await _api.post('/claims/pre-authorization', {
+      final response = await _api.post('/claims/pre-authorization', data: {
         'invoiceId': invoiceId,
         'services': services.map((s) => s.toJson()).toList(),
         if (notes != null) 'notes': notes,
       });
+      final data = response.data as Map<String, dynamic>;
 
       return PreAuthResult(
         success: true,
-        preAuthId: response['preAuthId'],
-        preAuthReference: response['preAuthReference'],
-        status: response['status'],
-        estimatedAmount: response['estimatedAmount']?.toDouble() ?? 0,
+        preAuthId: data['preAuthId'],
+        preAuthReference: data['preAuthReference'],
+        status: data['status'],
+        estimatedAmount: (data['estimatedAmount'] as num?)?.toDouble() ?? 0,
       );
     } catch (e) {
       state = state.copyWith(error: e.toString());
@@ -79,13 +81,13 @@ class ClaimNotifier extends StateNotifier<ClaimState> {
     String? patientId,
   }) async {
     try {
-      final response = await _api.get('/claims/verify-insurance', queryParams: {
+      final response = await _api.get('/claims/verify-insurance', queryParameters: {
         'memberNumber': memberNumber,
         if (cardNumber != null) 'cardNumber': cardNumber,
         if (patientId != null) 'patientId': patientId,
       });
 
-      return InsuranceVerificationResult.fromJson(response);
+      return InsuranceVerificationResult.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       state = state.copyWith(error: e.toString());
       return InsuranceVerificationResult(valid: false, error: e.toString());
@@ -96,7 +98,7 @@ class ClaimNotifier extends StateNotifier<ClaimState> {
     try {
       final response = await _api.get('/claims/status/$claimReference');
 
-      return ClaimStatusResult.fromJson(response);
+      return ClaimStatusResult.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       state = state.copyWith(error: e.toString());
       return ClaimStatusResult(
@@ -123,9 +125,10 @@ class ClaimNotifier extends StateNotifier<ClaimState> {
       if (status != null) params['status'] = status;
       if (claimType != null) params['claimType'] = claimType;
 
-      final response = await _api.get('/claims', queryParams: params);
-      final claims = (response['claims'] as List)
-          .map((c) => Claim.fromJson(c))
+      final response = await _api.get('/claims', queryParameters: params);
+      final data = response.data as Map<String, dynamic>;
+      final claims = (data['claims'] as List)
+          .map((c) => Claim.fromJson(c as Map<String, dynamic>))
           .toList();
       return claims;
     } catch (e) {
@@ -137,7 +140,7 @@ class ClaimNotifier extends StateNotifier<ClaimState> {
   Future<Claim?> getClaimById(String id) async {
     try {
       final response = await _api.get('/claims/$id');
-      return Claim.fromJson(response);
+      return Claim.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       state = state.copyWith(error: e.toString());
       return null;

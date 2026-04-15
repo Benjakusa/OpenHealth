@@ -58,7 +58,7 @@ class _NursingNoteFormScreenState extends ConsumerState<NursingNoteFormScreen> {
         if (_spo2Controller.text.isNotEmpty) 'spo2': int.tryParse(_spo2Controller.text),
       };
 
-      await _api.post('/ward/nursing-notes', {
+      await _api.post('/ward/nursing-notes', data: {
         'admissionId': widget.admissionId,
         'noteType': _noteType,
         'content': _content,

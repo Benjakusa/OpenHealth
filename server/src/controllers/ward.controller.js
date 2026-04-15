@@ -184,7 +184,7 @@ class WardController {
       const { tenantId } = req.user;
       const { wardId, status, search, page = 1, limit = 100 } = req.query;
 
-      const where = { tenantId };
+      const where = {};
       if (wardId) where.wardId = wardId;
       if (status) where.status = status;
 
@@ -281,7 +281,7 @@ class WardController {
       const { tenantId } = req.user;
       const { status, wardId, patientId, startDate, endDate, page = 1, limit = 50 } = req.query;
 
-      const where = { tenantId };
+      const where = {};
       if (status) where.status = status;
       if (wardId) where.wardId = wardId;
       if (patientId) where.patientId = patientId;
@@ -297,8 +297,7 @@ class WardController {
         include: [
           { model: db.models.Patient, as: 'patient', attributes: ['id', 'firstName', 'lastName', 'patientNumber', 'dateOfBirth', 'gender'] },
           { model: db.models.Ward, as: 'ward', attributes: ['id', 'name', 'code'] },
-          { model: db.models.Bed, as: 'bed', attributes: ['id', 'bedNumber'] },
-          { model: db.models.User, as: 'attendingPhysician', attributes: ['id', 'firstName', 'lastName'] }
+          { model: db.models.Bed, as: 'bed', attributes: ['id', 'bedNumber'] }
         ],
         order: [['admissionDate', 'DESC']],
         limit: parseInt(limit),
@@ -327,12 +326,11 @@ class WardController {
       const { id } = req.params;
 
       const admission = await db.models.Admission.findOne({
-        where: { id, tenantId },
+        where: { id },
         include: [
           { model: db.models.Patient, as: 'patient' },
           { model: db.models.Ward, as: 'ward' },
           { model: db.models.Bed, as: 'bed' },
-          { model: db.models.User, as: 'attendingPhysician', attributes: ['id', 'firstName', 'lastName', 'email'] },
           { model: db.models.NursingNote, as: 'nursingNotes', include: [{ model: db.models.User, as: 'author', attributes: ['id', 'firstName', 'lastName'] }] },
           { model: db.models.MedicationAdministrationRecord, as: 'mar', include: [{ model: db.models.User, as: 'nurse', attributes: ['id', 'firstName', 'lastName'] }] }
         ]
@@ -565,7 +563,7 @@ class WardController {
       const { tenantId } = req.user;
       const { admissionId, patientId, noteType, priority, page = 1, limit = 50 } = req.query;
 
-      const where = { tenantId };
+      const where = {};
       if (admissionId) where.admissionId = admissionId;
       if (patientId) where.patientId = patientId;
       if (noteType) where.noteType = noteType;
@@ -575,7 +573,7 @@ class WardController {
       const { count, rows } = await db.models.NursingNote.findAndCountAll({
         where,
         include: [
-          { model: db.models.User, as: 'author', attributes: ['id', 'firstName', 'lastName', 'role'] }
+          { model: db.models.User, as: 'nurse', attributes: ['id', 'firstName', 'lastName', 'role'] }
         ],
         order: [['createdAt', 'DESC']],
         limit: parseInt(limit),
@@ -613,26 +611,16 @@ class WardController {
       }
 
       const note = await db.models.NursingNote.create({
-        tenantId,
         admissionId,
         patientId: patientId || admission.patientId,
         noteType,
-        content,
+        notes: content,
         vitals,
-        painScore,
-        consciousness,
-        mobility,
-        skinCondition,
-        ivSite,
-        fluidBalance,
-        priority: priority || 'routine',
-        shiftType,
-        attachments: attachments || [],
-        createdBy: req.user.id
+        nurseId: req.user.id
       });
 
       const fullNote = await db.models.NursingNote.findByPk(note.id, {
-        include: [{ model: db.models.User, as: 'author', attributes: ['id', 'firstName', 'lastName'] }]
+        include: [{ model: db.models.User, as: 'nurse', attributes: ['id', 'firstName', 'lastName'] }]
       });
 
       res.status(201).json({ success: true, data: fullNote });
@@ -647,26 +635,18 @@ class WardController {
       const { tenantId } = req.user;
       const { admissionId, patientId, status, date, page = 1, limit = 100 } = req.query;
 
-      const where = { tenantId };
+      const where = {};
       if (admissionId) where.admissionId = admissionId;
       if (patientId) where.patientId = patientId;
       if (status) where.status = status;
-      if (date) {
-        const startOfDay = new Date(date);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(date);
-        endOfDay.setHours(23, 59, 59, 999);
-        where.scheduledTime = { [Op.between]: [startOfDay, endOfDay] };
-      }
 
       const offset = (page - 1) * limit;
       const { count, rows } = await db.models.MedicationAdministrationRecord.findAndCountAll({
         where,
         include: [
-          { model: db.models.User, as: 'nurse', attributes: ['id', 'firstName', 'lastName'] },
-          { model: db.models.Admission, as: 'admission', include: [{ model: db.models.Ward, as: 'ward' }] }
+          { model: db.models.User, as: 'nurse', attributes: ['id', 'firstName', 'lastName'] }
         ],
-        order: [['scheduledTime', 'ASC']],
+        order: [['createdAt', 'DESC']],
         limit: parseInt(limit),
         offset
       });
