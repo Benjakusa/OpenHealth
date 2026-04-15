@@ -3,12 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bootstrap_icons/bootstrap_icons.dart';
 import '../../../core/config/theme.dart';
 import '../../auth/presentation/auth_controller.dart';
+import 'admin_providers.dart';
 
 class PlatformAdminDashboard extends ConsumerWidget {
   const PlatformAdminDashboard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tenantsAsync = ref.watch(tenantsProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Platform Admin Portal'),
@@ -29,27 +32,37 @@ class PlatformAdminDashboard extends ConsumerWidget {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: AppSpacing.xl),
-            Row(
-              children: [
-                _buildStatCard('Total Tenants', '124', BootstrapIcons.buildings, Colors.blue),
-                const SizedBox(width: AppSpacing.lg),
-                _buildStatCard('Active Clinics', '482', BootstrapIcons.hospital, Colors.green),
-                const SizedBox(width: AppSpacing.lg),
-                _buildStatCard('Total Patients', '12.5k', BootstrapIcons.people, Colors.orange),
-                const SizedBox(width: AppSpacing.lg),
-                _buildStatCard('System Health', '99.9%', BootstrapIcons.activity, Colors.purple),
-              ],
+            tenantsAsync.when(
+              data: (tenants) => _buildStatsRow(tenants),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Text('Error loading stats: $e'),
             ),
             const SizedBox(height: AppSpacing.xxl),
             const Text(
-              'Recent Tenants',
+              'All Tenants',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: AppSpacing.lg),
-            _buildTenantTable(),
+            tenantsAsync.when(
+              data: (tenants) => _buildTenantTable(ref, tenants),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Text('Error loading tenants: $e'),
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildStatsRow(List<Map<String, dynamic>> tenants) {
+    return Row(
+      children: [
+        _buildStatCard('Total Tenants', tenants.length.toString(), BootstrapIcons.buildings, Colors.blue),
+        const SizedBox(width: AppSpacing.lg),
+        _buildStatCard('Active Subscriptions', tenants.where((t) => t['status'] == 'active').length.toString(), BootstrapIcons.check_circle, Colors.green),
+        const SizedBox(width: AppSpacing.lg),
+        _buildStatCard('Trial Accounts', tenants.where((t) => t['status'] == 'trial').length.toString(), BootstrapIcons.clock, Colors.orange),
+      ],
     );
   }
 
@@ -94,7 +107,11 @@ class PlatformAdminDashboard extends ConsumerWidget {
     );
   }
 
-  Widget _buildTenantTable() {
+  Widget _buildTenantTable(WidgetRef ref, List<Map<String, dynamic>> tenants) {
+    if (tenants.isEmpty) {
+      return const Center(child: Text('No tenants found'));
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -107,27 +124,18 @@ class PlatformAdminDashboard extends ConsumerWidget {
           ),
         ],
       ),
-      child: Table(
-        columnWidths: const {
-          0: FlexColumnWidth(2),
-          1: FlexColumnWidth(1),
-          2: FlexColumnWidth(1),
-          3: FlexColumnWidth(1),
-          4: FlexColumnWidth(1),
-        },
+      child: Column(
         children: [
           _buildTableHeader(),
-          _buildTableRow('Aga Khan University Hospital', 'Nairobi', 'Premium', 'Active', '12 Clinics'),
-          _buildTableRow('Gertrude\'s Children\'s Hospital', 'Muthaiga', 'Standard', 'Active', '8 Clinics'),
-          _buildTableRow('Kenyatta National Hospital', 'Upperhill', 'Enterprise', 'Active', '1 Clinic'),
-          _buildTableRow('Nairobi Hospital', 'Argwings Kodhek', 'Premium', 'Suspended', '3 Clinics'),
+          ...tenants.map((t) => _buildTenantRow(ref, t)).toList(),
         ],
       ),
     );
   }
 
-  TableRow _buildTableHeader() {
-    return TableRow(
+  Widget _buildTableHeader() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: Colors.grey[50],
         borderRadius: const BorderRadius.only(
@@ -135,54 +143,89 @@ class PlatformAdminDashboard extends ConsumerWidget {
           topRight: Radius.circular(AppRadius.lg),
         ),
       ),
-      children: [
-        _buildTableCell('Tenant Name', isHeader: true),
-        _buildTableCell('Location', isHeader: true),
-        _buildTableCell('Package', isHeader: true),
-        _buildTableCell('Status', isHeader: true),
-        _buildTableCell('Scale', isHeader: true),
-      ],
+      child: Row(
+        children: [
+          Expanded(flex: 3, child: Text('Tenant Name', style: TextStyle(fontWeight: FontWeight.bold))),
+          Expanded(flex: 2, child: Text('Package', style: TextStyle(fontWeight: FontWeight.bold))),
+          Expanded(flex: 2, child: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
+          Expanded(flex: 2, child: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+        ],
+      ),
     );
   }
 
-  TableRow _buildTableRow(String name, String loc, String pkg, String status, String scale) {
-    return TableRow(
-      children: [
-        _buildTableCell(name),
-        _buildTableCell(loc),
-        _buildTableCell(pkg),
-        _buildTableCell(status, isStatus: true),
-        _buildTableCell(scale),
-      ],
-    );
-  }
+  Widget _buildTenantRow(WidgetRef ref, Map<String, dynamic> tenant) {
+    final status = tenant['status'] ?? 'unknown';
+    final isSuspended = status == 'suspended';
 
-  Widget _buildTableCell(String text, {bool isHeader = false, bool isStatus = false}) {
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: isStatus 
-        ? Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: text == 'Active' ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              text,
-              style: TextStyle(
-                color: text == 'Active' ? Colors.green : Colors.red,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-            ),
-          )
-        : Text(
-            text,
-            style: TextStyle(
-              fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
-              color: isHeader ? Colors.grey[800] : Colors.grey[600],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: Colors.grey[200]!)),
+      ),
+      child: Row(
+        children: [
+          Expanded(flex: 3, child: Text(tenant['name'], style: TextStyle(fontWeight: FontWeight.w500))),
+          Expanded(flex: 2, child: Text(tenant['package'] ?? 'DEFAULT')),
+          Expanded(
+            flex: 2, 
+            child: _StatusBadge(status: status),
+          ),
+          Expanded(
+            flex: 2,
+            child: Row(
+              children: [
+                IconButton(
+                  icon: Icon(
+                    isSuspended ? BootstrapIcons.play_circle : BootstrapIcons.pause_circle,
+                    color: isSuspended ? Colors.green : Colors.orange,
+                  ),
+                  onPressed: () async {
+                    final success = await ref.read(authStateProvider.notifier).suspendTenant(tenant['id'], !isSuspended);
+                    if (success) ref.refresh(tenantsProvider);
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(BootstrapIcons.trash, color: AppTheme.errorColor),
+                  onPressed: () {},
+                ),
+              ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  final String status;
+  const _StatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final Color color;
+    switch (status) {
+      case 'active': color = Colors.green; break;
+      case 'trial': color = Colors.blue; break;
+      case 'suspended': color = Colors.red; break;
+      default: color = Colors.grey;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+          fontSize: 10,
+        ),
+      ),
     );
   }
 }

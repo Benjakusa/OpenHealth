@@ -249,19 +249,28 @@ class AuthController {
         status: 'active'
       });
 
-      // Generate unique 4-digit codes for each clinic
+      // Set up clinic data
       const clinicData = [];
       if (clinics && clinics.length > 0) {
         for (const clinic of clinics) {
-          let code = generateClinicCode();
+          let code = (clinic.code || generateClinicCode()).toUpperCase();
 
-          // Ensure code is unique
+          // Ensure code is unique in the database
           let attempts = 0;
-          while (attempts < 100) {
+          let isUnique = false;
+          while (!isUnique && attempts < 100) {
             const existingCode = await Facility.findOne({ where: { code } });
-            if (!existingCode) break;
-            code = generateClinicCode();
-            attempts++;
+            if (!existingCode) {
+              isUnique = true;
+            } else if (clinic.code && attempts === 0) {
+              // If user provided a code that's taken, error out or keep trying?
+              // User requirement: "This code must be unique across all clinics in the system."
+              // Better to error out if the user's SPECIFIC code is taken.
+              return res.status(409).json({ error: `Clinic code ${code} is already in use` });
+            } else {
+              code = generateClinicCode();
+              attempts++;
+            }
           }
 
           clinicData.push({
@@ -510,6 +519,54 @@ class AuthController {
       });
     } catch (error) {
       console.error('Approve user error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  async getPendingUsers(req, res) {
+    try {
+      const whereClause = { status: 'pending_approval' };
+      if (!req.user.isPlatformAdmin) {
+        whereClause.tenantId = req.user.tenantId;
+      }
+
+      const users = await User.findAll({
+        where: whereClause,
+        include: [{ model: Facility, as: 'facility' }]
+      });
+
+      res.json(users);
+    } catch (error) {
+      console.error('Get pending users error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  async listClinics(req, res) {
+    try {
+      if (!req.user.isPlatformAdmin && req.user.role !== 'SUPER_ADMIN') {
+        return res.status(403).json({ error: 'Insufficient permissions' });
+      }
+
+      const whereClause = {};
+      if (!req.user.isPlatformAdmin) {
+        whereClause.tenantId = req.user.tenantId;
+      }
+
+      const clinics = await Facility.findAll({
+        where: whereClause,
+        include: [
+          {
+            model: User,
+            as: 'users',
+            attributes: ['id', 'status']
+          }
+        ]
+      });
+
+      res.json(clinics);
+    } catch (error) {
+      console.error('List clinics error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   }

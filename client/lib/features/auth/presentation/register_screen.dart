@@ -23,6 +23,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _numClinicsController = TextEditingController(text: '1');
   final List<TextEditingController> _clinicNameControllers = [TextEditingController()];
   final List<TextEditingController> _clinicAddressControllers = [TextEditingController()];
+  final List<TextEditingController> _clinicCodeControllers = [TextEditingController()];
   
   // Staff/Common Controllers
   final _clinicCodeController = TextEditingController();
@@ -47,6 +48,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     for (var c in _clinicAddressControllers) {
       c.dispose();
     }
+    for (var c in _clinicCodeControllers) {
+      c.dispose();
+    }
     _clinicCodeController.dispose();
     _firstNameController.dispose();
     _lastNameController.dispose();
@@ -65,13 +69,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         for (int i = _clinicNameControllers.length; i < count; i++) {
           _clinicNameControllers.add(TextEditingController());
           _clinicAddressControllers.add(TextEditingController());
+          _clinicCodeControllers.add(TextEditingController());
         }
       } else if (count < _clinicNameControllers.length) {
         for (int i = _clinicNameControllers.length - 1; i >= count; i--) {
           _clinicNameControllers[i].dispose();
           _clinicAddressControllers[i].dispose();
+          _clinicCodeControllers[i].dispose();
           _clinicNameControllers.removeAt(i);
           _clinicAddressControllers.removeAt(i);
+          _clinicCodeControllers.removeAt(i);
         }
       }
     });
@@ -91,6 +98,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         for (int i = 0; i < _clinicNameControllers.length; i++) {
           clinics.add({
             'name': _clinicNameControllers[i].text.trim(),
+            'code': _clinicCodeControllers[i].text.trim().toUpperCase(),
             'address': {'street': _clinicAddressControllers[i].text.trim()},
           });
         }
@@ -459,6 +467,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     prefixIcon: Icon(BootstrapIcons.geo_alt),
                   ),
                   validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                TextFormField(
+                  controller: _clinicCodeControllers[index],
+                  decoration: const InputDecoration(
+                    labelText: 'Clinic Code (4-digit)',
+                    prefixIcon: Icon(BootstrapIcons.hash),
+                    hintText: 'e.g. A3B9',
+                  ),
+                  textCapitalization: TextCapitalization.characters,
+                  maxLength: 4,
+                  validator: (v) => v == null || v.length != 4 ? 'Invalid code' : null,
                 ),
               ],
             ),

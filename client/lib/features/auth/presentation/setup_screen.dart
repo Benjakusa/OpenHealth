@@ -132,24 +132,24 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         if (isMobile) ...[
           _ActionCard(
             icon: BootstrapIcons.person_plus,
-            title: 'Register',
-            subtitle: 'Register your organization',
+            title: 'Register Hospital',
+            subtitle: 'New enrollment for healthcare facilities',
             color: Colors.teal,
             onTap: () => context.go('/register'),
           ),
           const SizedBox(height: AppSpacing.md),
           _ActionCard(
             icon: BootstrapIcons.box_arrow_in_right,
-            title: 'Sign in to Clinic',
-            subtitle: 'Access your facility dashboard',
+            title: 'Sign In',
+            subtitle: 'Access for staff and facility admins',
             color: AppTheme.primaryColor,
             onTap: () => context.go('/login'),
           ),
           const SizedBox(height: AppSpacing.md),
           _ActionCard(
             icon: BootstrapIcons.shield_lock,
-            title: 'OpenHealth Log in',
-            subtitle: 'Platform administration',
+            title: 'Open Health access',
+            subtitle: 'Global platform administration',
             color: Colors.purple,
             onTap: () => context.go('/admin/login'),
           ),
@@ -160,7 +160,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               Expanded(
                 child: _ActionCard(
                   icon: BootstrapIcons.person_plus,
-                  title: 'Register',
+                  title: 'Register Hospital',
                   subtitle: 'Start managing your healthcare operations with our secure multi-tenant platform.',
                   color: Colors.teal,
                   onTap: () => context.go('/register'),
@@ -170,7 +170,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               Expanded(
                 child: _ActionCard(
                   icon: BootstrapIcons.box_arrow_in_right,
-                  title: 'Sign in to Clinic',
+                  title: 'Sign In',
                   subtitle: 'Access your clinic dashboard, patient records, and pharmacy management.',
                   color: AppTheme.primaryColor,
                   onTap: () => context.go('/login'),
@@ -180,7 +180,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               Expanded(
                 child: _ActionCard(
                   icon: BootstrapIcons.shield_lock,
-                  title: 'OpenHealth Log in',
+                  title: 'Open Health access',
                   subtitle: 'Centralized platform management for system administrators and support.',
                   color: Colors.purple,
                   onTap: () => context.go('/admin/login'),

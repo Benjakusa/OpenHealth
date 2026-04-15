@@ -3,12 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bootstrap_icons/bootstrap_icons.dart';
 import '../../../core/config/theme.dart';
 import '../../auth/presentation/auth_controller.dart';
+import 'admin_providers.dart';
 
 class SuperAdminDashboard extends ConsumerWidget {
   const SuperAdminDashboard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final pendingUsers = ref.watch(pendingUsersProvider);
+    final clinics = ref.watch(clinicsProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Organization Console'),
@@ -25,36 +29,49 @@ class SuperAdminDashboard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildOrgStats(),
+            _buildOrgStats(pendingUsers, clinics),
             const SizedBox(height: AppSpacing.xxl),
             const Text('Pending Approvals', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: AppSpacing.lg),
-            _buildApprovalQueue(),
+            pendingUsers.when(
+              data: (users) => _buildApprovalQueue(context, ref, users),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Text('Error loading users: $e'),
+            ),
             const SizedBox(height: AppSpacing.xxl),
             const Text('Manage Clinics', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: AppSpacing.lg),
-            _buildFacilitiesGrid(),
+            clinics.when(
+              data: (clinicList) => _buildFacilitiesGrid(clinicList),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Text('Error loading clinics: $e'),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildOrgStats() {
+  Widget _buildOrgStats(AsyncValue<List<Map<String, dynamic>>> pendingUsers, AsyncValue<List<Map<String, dynamic>>> clinics) {
     return Row(
       children: [
-        Expanded(child: _StatCard('Total Clinics', '5', BootstrapIcons.hospital, AppTheme.primaryColor)),
+        Expanded(child: _StatCard('Clinics', clinics.value?.length.toString() ?? '...', BootstrapIcons.hospital, AppTheme.primaryColor)),
         const SizedBox(width: AppSpacing.lg),
-        Expanded(child: _StatCard('Total Staff', '48', BootstrapIcons.people, AppTheme.successColor)),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(child: _StatCard('Monthly Revenue', 'KES 840k', BootstrapIcons.wallet2, Colors.blue)),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(child: _StatCard('Pending Users', '3', BootstrapIcons.person_plus, Colors.orange)),
+        Expanded(child: _StatCard('Pending Users', pendingUsers.value?.length.toString() ?? '...', BootstrapIcons.person_plus, Colors.orange)),
       ],
     );
   }
 
-  Widget _buildApprovalQueue() {
+  Widget _buildApprovalQueue(BuildContext context, WidgetRef ref, List<Map<String, dynamic>> users) {
+    if (users.isEmpty) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(AppSpacing.xl),
+          child: Center(child: Text('No users awaiting approval')),
+        ),
+      );
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -62,18 +79,21 @@ class SuperAdminDashboard extends ConsumerWidget {
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
       ),
       child: Column(
-        children: [
-          _buildApprovalItem('John Doe', 'Doctor', 'City Main Hospital', '2 hours ago'),
-          const Divider(height: 1),
-          _buildApprovalItem('Jane Smith', 'Nurse', 'Westside Clinic', '5 hours ago'),
-          const Divider(height: 1),
-          _buildApprovalItem('Robert Wilson', 'Receptionist', 'City Main Hospital', 'Yesterday'),
-        ],
+        children: users.map((user) => Column(
+          children: [
+            _buildApprovalItem(context, ref, user),
+            if (user != users.last) const Divider(height: 1),
+          ],
+        )).toList(),
       ),
     );
   }
 
-  Widget _buildApprovalItem(String name, String role, String clinic, String time) {
+  Widget _buildApprovalItem(BuildContext context, WidgetRef ref, Map<String, dynamic> user) {
+    final name = '${user['firstName']} ${user['lastName']}';
+    final role = user['role'];
+    final clinic = user['facility']?['name'] ?? 'No clinic';
+
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.sm),
       leading: CircleAvatar(
@@ -81,22 +101,34 @@ class SuperAdminDashboard extends ConsumerWidget {
         child: Text(name[0], style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
       ),
       title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-      subtitle: Text('$role • $clinic • $time'),
+      subtitle: Text('$role • $clinic'),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          TextButton(onPressed: () {}, child: const Text('Reject', style: TextStyle(color: AppTheme.errorColor))),
+          TextButton(
+            onPressed: () async {
+              final success = await ref.read(authStateProvider.notifier).approveUser(user['id'], false);
+              if (success) ref.refresh(pendingUsersProvider);
+            }, 
+            child: const Text('Reject', style: TextStyle(color: AppTheme.errorColor)),
+          ),
           const SizedBox(width: AppSpacing.sm),
-          ElevatedButton(onPressed: () {}, child: const Text('Approve')),
+          ElevatedButton(
+            onPressed: () async {
+              final success = await ref.read(authStateProvider.notifier).approveUser(user['id'], true);
+              if (success) ref.refresh(pendingUsersProvider);
+            }, 
+            child: const Text('Approve'),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildFacilitiesGrid() {
+  Widget _buildFacilitiesGrid(List<Map<String, dynamic>> clinicList) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossAxisCount = constraints.maxWidth > 1200 ? 3 : (constraints.maxWidth > 800 ? 2 : 1);
+        final crossAxisCount = constraints.maxWidth > 800 ? 2 : 1;
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -104,10 +136,10 @@ class SuperAdminDashboard extends ConsumerWidget {
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: AppSpacing.lg,
             mainAxisSpacing: AppSpacing.lg,
-            childAspectRatio: 1.8,
+            childAspectRatio: 2.0,
           ),
-          itemCount: 3, // Mock data
-          itemBuilder: (context, index) => _FacilityCard(index: index),
+          itemCount: clinicList.length,
+          itemBuilder: (context, index) => _FacilityCard(clinic: clinicList[index]),
         );
       },
     );
@@ -133,7 +165,7 @@ class _StatCard extends StatelessWidget {
               decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
               child: Icon(icon, color: color, size: 20),
             ),
-            const Spacer(),
+            const SizedBox(height: AppSpacing.md),
             Text(title, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryLight)),
             Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
           ],
@@ -144,13 +176,13 @@ class _StatCard extends StatelessWidget {
 }
 
 class _FacilityCard extends StatelessWidget {
-  final int index;
-  const _FacilityCard({required this.index});
+  final Map<String, dynamic> clinic;
+  const _FacilityCard({required this.clinic});
 
   @override
   Widget build(BuildContext context) {
-    final names = ['City Main Hospital', 'Westside Clinic', 'Eastlands Medical Centre'];
-    final codes = ['A3B9', 'C2D4', 'X1Y7'];
+    final List users = clinic['users'] ?? [];
+    final staffCount = users.length;
     
     return Card(
       child: Padding(
@@ -162,39 +194,27 @@ class _FacilityCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text(names[index], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), overflow: TextOverflow.ellipsis),
+                  child: Text(clinic['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), overflow: TextOverflow.ellipsis),
                 ),
-                _StatusBadge(status: 'Active'),
+                _StatusBadge(status: clinic['status'] == 'active' ? 'Active' : 'Inactive'),
               ],
             ),
             const SizedBox(height: 4),
-            Text('Clinic Code: ${codes[index]}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
+            Text('Clinic Code: ${clinic['code']}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
             const Spacer(),
-            const Row(
+            Row(
               children: [
-                Icon(BootstrapIcons.people, size: 14, color: AppTheme.textSecondaryLight),
-                SizedBox(width: 4),
-                Text('24 Staff', style: TextStyle(fontSize: 12, color: AppTheme.textSecondaryLight)),
-                SizedBox(width: 16),
-                Icon(BootstrapIcons.activity, size: 14, color: AppTheme.textSecondaryLight),
-                SizedBox(width: 4),
-                Text('Active Now', style: TextStyle(fontSize: 12, color: AppTheme.textSecondaryLight)),
+                const Icon(BootstrapIcons.people, size: 14, color: AppTheme.textSecondaryLight),
+                const SizedBox(width: 4),
+                Text('$staffCount Staff', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryLight)),
               ],
             ),
             const Divider(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                OutlinedButton(
-                  onPressed: () {}, 
-                  child: const Text('Settings'),
-                ),
-                const SizedBox(width: 8),
                 ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
-                  ),
+                  onPressed: () {}, 
                   child: const Text('View Data'),
                 ),
               ],

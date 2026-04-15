@@ -260,6 +260,65 @@ class AuthNotifier extends Notifier<AsyncValue<AuthUser?>> {
       return (success: false, error: e.toString());
     }
   }
+  Future<List<Map<String, dynamic>>> getPendingUsers() async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      final response = await api.get('/auth/pending-users');
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(response.data);
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<bool> approveUser(String userId, bool approved) async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      final response = await api.post('/auth/approve-user/$userId', data: {'approved': approved});
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getClinics() async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      final response = await api.get('/auth/clinics');
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(response.data);
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getTenants() async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      final response = await api.get('/tenants');
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(response.data);
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<bool> suspendTenant(String tenantId, bool suspend) async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      final endpoint = suspend ? '/tenants/$tenantId/suspend' : '/tenants/$tenantId/reactivate';
+      final response = await api.post(endpoint);
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
 }
 
 final apiServiceProvider = Provider<ApiService>((ref) => ApiService());

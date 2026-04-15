@@ -12,5 +12,7 @@ router.post('/refresh', authController.refresh);
 router.post('/logout', authenticate, authController.logout);
 router.get('/me', authenticate, authController.me);
 router.post('/approve-user/:userId', authenticate, authController.approveUser);
+router.get('/pending-users', authenticate, authController.getPendingUsers);
+router.get('/clinics', authenticate, authController.listClinics);
 
 module.exports = router;
