@@ -18,6 +18,15 @@ module.exports = (sequelize) => {
         key: 'id'
       }
     },
+    facilityId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'facility_id',
+      references: {
+        model: 'facilities',
+        key: 'id'
+      }
+    },
     name: {
       type: DataTypes.STRING(255),
       allowNull: false
@@ -63,6 +72,7 @@ module.exports = (sequelize) => {
     underscored: true,
     indexes: [
       { fields: ['tenant_id'] },
+      { fields: ['facility_id'] },
       { fields: ['tenant_id', 'status'] },
       { fields: ['tenant_id', 'type'] }
     ]

@@ -132,26 +132,26 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         if (isMobile) ...[
           _ActionCard(
             icon: BootstrapIcons.person_plus,
-            title: 'New Facility',
-            subtitle: 'Register your hospital or clinic',
+            title: 'Register',
+            subtitle: 'Register your organization',
             color: Colors.teal,
             onTap: () => context.go('/register'),
           ),
           const SizedBox(height: AppSpacing.md),
           _ActionCard(
             icon: BootstrapIcons.box_arrow_in_right,
-            title: 'Staff Login',
-            subtitle: 'Sign in to your account',
+            title: 'Sign in to Clinic',
+            subtitle: 'Access your facility dashboard',
             color: AppTheme.primaryColor,
             onTap: () => context.go('/login'),
           ),
           const SizedBox(height: AppSpacing.md),
           _ActionCard(
-            icon: BootstrapIcons.link_45deg,
-            title: 'Connect',
-            subtitle: 'Link existing facility',
-            color: Colors.orange,
-            onTap: () => setState(() => _showConnectForm = true),
+            icon: BootstrapIcons.shield_lock,
+            title: 'OpenHealth Log in',
+            subtitle: 'Platform administration',
+            color: Colors.purple,
+            onTap: () => context.go('/admin/login'),
           ),
         ] else
           Row(
@@ -160,8 +160,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               Expanded(
                 child: _ActionCard(
                   icon: BootstrapIcons.person_plus,
-                  title: 'Register Facility',
-                  subtitle: 'Start managing your healthcare operations with our secure SaaS platform.',
+                  title: 'Register',
+                  subtitle: 'Start managing your healthcare operations with our secure multi-tenant platform.',
                   color: Colors.teal,
                   onTap: () => context.go('/register'),
                 ),
@@ -170,8 +170,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               Expanded(
                 child: _ActionCard(
                   icon: BootstrapIcons.box_arrow_in_right,
-                  title: 'Staff Login',
-                  subtitle: 'Access your facility dashboard, patient records, and pharmacy queues.',
+                  title: 'Sign in to Clinic',
+                  subtitle: 'Access your clinic dashboard, patient records, and pharmacy management.',
                   color: AppTheme.primaryColor,
                   onTap: () => context.go('/login'),
                 ),
@@ -179,11 +179,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               const SizedBox(width: AppSpacing.lg),
               Expanded(
                 child: _ActionCard(
-                  icon: BootstrapIcons.link_45deg,
-                  title: 'Connect Existing',
-                  subtitle: 'Enter your facility ID to link this device to your hospital system.',
-                  color: Colors.orange,
-                  onTap: () => setState(() => _showConnectForm = true),
+                  icon: BootstrapIcons.shield_lock,
+                  title: 'OpenHealth Log in',
+                  subtitle: 'Centralized platform management for system administrators and support.',
+                  color: Colors.purple,
+                  onTap: () => context.go('/admin/login'),
                 ),
               ),
             ],

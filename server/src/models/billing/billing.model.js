@@ -15,6 +15,14 @@ module.exports = (sequelize) => {
         key: 'id'
       }
     },
+    facilityId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: 'facilities',
+        key: 'id'
+      }
+    },
     invoiceNumber: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -129,7 +137,7 @@ module.exports = (sequelize) => {
     ]
   });
 
-  Billing.generateInvoiceNumber = function(tenantSlug, type = 'INV') {
+  Billing.generateInvoiceNumber = function (tenantSlug, type = 'INV') {
     const date = new Date();
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -137,25 +145,25 @@ module.exports = (sequelize) => {
     return `${tenantSlug.toUpperCase().substring(0, 3)}-${type}-${year}${month}-${random}`;
   };
 
-  Billing.prototype.addItem = function(item) {
+  Billing.prototype.addItem = function (item) {
     const items = this.items || [];
     const existingIndex = items.findIndex(i => i.code === item.code && !i.voided);
-    
+
     if (existingIndex >= 0) {
       return { error: 'Item already added', index: existingIndex };
     }
-    
+
     items.push({
       ...item,
       id: require('uuid').v4(),
       addedAt: new Date()
     });
-    
+
     this.items = items;
     this.recalculate();
   };
 
-  Billing.prototype.removeItem = function(itemId) {
+  Billing.prototype.removeItem = function (itemId) {
     const items = this.items || [];
     const index = items.findIndex(i => i.id === itemId);
     if (index >= 0) {
@@ -168,14 +176,14 @@ module.exports = (sequelize) => {
     return false;
   };
 
-  Billing.prototype.recalculate = function() {
+  Billing.prototype.recalculate = function () {
     const validItems = (this.items || []).filter(i => !i.voided);
     this.subtotal = validItems.reduce((sum, item) => sum + (item.amount || 0), 0);
     this.total = this.subtotal - this.discount + this.tax;
     this.balance = this.total - this.amountPaid;
   };
 
-  Billing.prototype.addPayment = function(payment) {
+  Billing.prototype.addPayment = function (payment) {
     const payments = this.payments || [];
     payments.push({
       ...payment,
@@ -185,7 +193,7 @@ module.exports = (sequelize) => {
     this.payments = payments;
     this.amountPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
     this.recalculate();
-    
+
     if (this.balance <= 0) {
       this.status = 'paid';
       this.paidAt = new Date();
@@ -194,7 +202,7 @@ module.exports = (sequelize) => {
     }
   };
 
-  Billing.prototype.calculatePatientResponsibility = function(shaCover, insuranceCover, insuranceDetails) {
+  Billing.prototype.calculatePatientResponsibility = function (shaCover, insuranceCover, insuranceDetails) {
     let shaAmount = 0;
     let insuranceAmount = 0;
     let patientAmount = 0;
@@ -203,7 +211,7 @@ module.exports = (sequelize) => {
     shaAmount = shaCoveredItems.reduce((sum, item) => sum + (item.amount || 0), 0) * (shaCover / 100);
 
     if (insuranceDetails) {
-      const insuranceCoveredItems = (this.items || []).filter(i => 
+      const insuranceCoveredItems = (this.items || []).filter(i =>
         i.insuranceCovered && i.insuranceProvider === insuranceDetails.provider
       );
       insuranceAmount = insuranceCoveredItems.reduce((sum, item) => sum + (item.amount || 0), 0) * (insuranceDetails.coveragePercent / 100);
@@ -215,7 +223,7 @@ module.exports = (sequelize) => {
     this.insuranceCover = insuranceAmount;
     this.patientPay = patientAmount;
     this.recalculate();
-    
+
     return { shaCover: shaAmount, insuranceCover: insuranceAmount, patientPay: patientAmount };
   };
 

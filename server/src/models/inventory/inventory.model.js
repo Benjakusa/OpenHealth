@@ -15,6 +15,14 @@ module.exports = (sequelize) => {
         key: 'id'
       }
     },
+    facilityId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: 'facilities',
+        key: 'id'
+      }
+    },
     itemCode: {
       type: DataTypes.STRING,
       allowNull: false
@@ -162,6 +170,7 @@ module.exports = (sequelize) => {
     timestamps: true,
     indexes: [
       { fields: ['tenant_id'] },
+      { fields: ['facility_id'] },
       { fields: ['item_code'] },
       { fields: ['category'] },
       { fields: ['status'] },
@@ -169,10 +178,10 @@ module.exports = (sequelize) => {
     ]
   });
 
-  Inventory.prototype.addBatch = function(batch) {
+  Inventory.prototype.addBatch = function (batch) {
     const batches = this.batches || [];
     const existingIndex = batches.findIndex(b => b.batchNumber === batch.batchNumber);
-    
+
     if (existingIndex >= 0) {
       batches[existingIndex].quantity += batch.quantity;
       batches[existingIndex].expiryDate = batch.expiryDate;
@@ -183,23 +192,23 @@ module.exports = (sequelize) => {
         receivedAt: new Date()
       });
     }
-    
+
     this.batches = batches;
     this.recalculateQuantity();
   };
 
-  Inventory.prototype.deductFromBatch = function(quantity, preferredBatch = null) {
-    const batches = [...this.batches].sort((a, b) => 
+  Inventory.prototype.deductFromBatch = function (quantity, preferredBatch = null) {
+    const batches = [...this.batches].sort((a, b) =>
       new Date(a.expiryDate) - new Date(b.expiryDate)
     );
-    
+
     let remaining = quantity;
     const deductions = [];
-    
+
     for (const batch of batches) {
       if (remaining <= 0) break;
       if (batch.quantity <= 0) continue;
-      
+
       const deducted = Math.min(batch.quantity, remaining);
       deductions.push({
         batchNumber: batch.batchNumber,
@@ -208,11 +217,11 @@ module.exports = (sequelize) => {
       });
       remaining -= deducted;
     }
-    
+
     if (remaining > 0) {
       return { success: false, message: 'Insufficient stock', remaining };
     }
-    
+
     this.batches = batches.map(batch => {
       const deduction = deductions.find(d => d.batchNumber === batch.batchNumber);
       if (deduction) {
@@ -220,14 +229,14 @@ module.exports = (sequelize) => {
       }
       return batch;
     }).filter(b => b.quantity > 0);
-    
+
     this.recalculateQuantity();
     return { success: true, deductions };
   };
 
-  Inventory.prototype.recalculateQuantity = function() {
+  Inventory.prototype.recalculateQuantity = function () {
     this.quantity = (this.batches || []).reduce((sum, batch) => sum + batch.quantity, 0);
-    
+
     if (this.quantity <= 0) {
       this.status = 'out_of_stock';
     } else if (this.quantity <= this.reorderLevel) {
@@ -235,25 +244,25 @@ module.exports = (sequelize) => {
     }
   };
 
-  Inventory.prototype.isNearExpiry = function(days = 90) {
+  Inventory.prototype.isNearExpiry = function (days = 90) {
     const now = new Date();
     const threshold = new Date();
     threshold.setDate(threshold.getDate() + days);
-    
+
     return (this.batches || []).filter(batch => {
       const expiry = new Date(batch.expiryDate);
       return expiry <= threshold && expiry > now;
     });
   };
 
-  Inventory.prototype.isExpired = function() {
+  Inventory.prototype.isExpired = function () {
     const now = new Date();
-    return (this.batches || []).filter(batch => 
+    return (this.batches || []).filter(batch =>
       new Date(batch.expiryDate) <= now
     );
   };
 
-  Inventory.prototype.recordMovement = function(movement) {
+  Inventory.prototype.recordMovement = function (movement) {
     const movementRecord = {
       ...movement,
       id: require('uuid').v4(),
@@ -262,11 +271,11 @@ module.exports = (sequelize) => {
     this.movement.push(movementRecord);
   };
 
-  Inventory.prototype.getValue = function() {
+  Inventory.prototype.getValue = function () {
     return this.quantity * parseFloat(this.unitPrice);
   };
 
-  Inventory.prototype.needsReorder = function() {
+  Inventory.prototype.needsReorder = function () {
     return this.quantity <= this.reorderLevel;
   };
 

@@ -5,6 +5,7 @@ import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/admin_login_screen.dart';
 import '../../features/auth/presentation/setup_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
+import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/auth_controller.dart';
 import '../../features/patients/presentation/patient_list_screen.dart';
 import '../../features/patients/presentation/patient_detail_screen.dart';
@@ -26,6 +27,7 @@ import '../../features/ward/presentation/admission_detail_screen.dart';
 import '../../features/reports/presentation/reports_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/admin/presentation/super_admin_dashboard.dart';
+import '../../features/admin/presentation/platform_admin_dashboard.dart';
 import '../widgets/main_scaffold.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -37,6 +39,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final user = authState.valueOrNull;
       final isLoggedIn = user != null;
+      final isPlatformAdmin = user?.email == 'admin@openhealth.com';
       final isSuperAdmin = user?.role == 'SUPER_ADMIN';
 
       final isSetup = state.matchedLocation == '/setup';
@@ -46,14 +49,16 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (state.matchedLocation == '/') {
         if (!isLoggedIn) return '/login';
+        if (isPlatformAdmin) return '/platform-admin';
         return isSuperAdmin ? '/super-admin' : '/patients';
       }
 
-      if (!isSetup && !isLoggedIn && !isLogin && !isAdminLogin && !isRegister) {
+      if (!isSetup && !isLoggedIn && !isLogin && !isAdminLogin && !isRegister && state.matchedLocation != '/forgot-password') {
         return '/setup';
       }
 
       if (isLoggedIn && (isLogin || isAdminLogin || isSetup || isRegister)) {
+        if (isPlatformAdmin) return '/platform-admin';
         return isSuperAdmin ? '/super-admin' : '/patients';
       }
 
@@ -79,6 +84,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/super-admin',
         builder: (context, state) => const SuperAdminDashboard(),
+      ),
+      GoRoute(
+        path: '/platform-admin',
+        builder: (context, state) => const PlatformAdminDashboard(),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) => MainScaffold(child: child),

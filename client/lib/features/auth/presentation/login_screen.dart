@@ -17,12 +17,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _facilityCodeController = TextEditingController();
   bool _obscurePassword = true;
+  String _selectedRole = 'SUPER_ADMIN'; // SUPER_ADMIN, FACILITY_ADMIN, STAFF
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _facilityCodeController.dispose();
     super.dispose();
   }
 
@@ -32,6 +35,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final success = await ref.read(authStateProvider.notifier).login(
       _emailController.text.trim(),
       _passwordController.text,
+      facilityCode: _selectedRole != 'SUPER_ADMIN' ? _facilityCodeController.text.trim().toUpperCase() : null,
     );
 
     if (success && mounted) {
@@ -172,10 +176,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         Text(
                           Environment.tenantName.isNotEmpty
                               ? 'Accessing ${Environment.tenantName}'
-                              : 'Sign in to your facility account',
+                              : 'Sign in to your account',
                           style: const TextStyle(
                             fontSize: 16,
                             color: AppTheme.textSecondaryLight,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xxl),
+                        
+                        // Role Selection
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.xs),
+                          decoration: BoxDecoration(
+                            color: AppTheme.backgroundLight,
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                          ),
+                          child: Row(
+                            children: [
+                              _buildRoleTab('SUPER_ADMIN', 'Tenant'),
+                              _buildRoleTab('FACILITY_ADMIN', 'Clinic Admin'),
+                              _buildRoleTab('STAFF', 'Staff'),
+                            ],
                           ),
                         ),
                         const SizedBox(height: AppSpacing.xxl),
@@ -196,6 +217,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   value == null || value.isEmpty ? 'Required' : null,
                               ),
                               const SizedBox(height: AppSpacing.lg),
+                              if (_selectedRole != 'SUPER_ADMIN') ...[
+                                TextFormField(
+                                  controller: _facilityCodeController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Clinic Code',
+                                    prefixIcon: Icon(BootstrapIcons.hash),
+                                    hintText: 'e.g. A3B9',
+                                  ),
+                                  textCapitalization: TextCapitalization.characters,
+                                  maxLength: 4,
+                                  validator: (value) => 
+                                    value == null || value.length != 4 ? 'Invalid code' : null,
+                                ),
+                                const SizedBox(height: AppSpacing.lg),
+                              ],
                               TextFormField(
                                 controller: _passwordController,
                                 decoration: InputDecoration(
@@ -215,7 +251,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 onFieldSubmitted: (_) => _login(),
                                 validator: (value) => 
                                   value == null || value.isEmpty ? 'Required' : null,
-                              ),
+                                ),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton(
+                                    onPressed: () => context.push('/forgot-password'),
+                                    child: const Text('Forgot Password?'),
+                                  ),
+                                ),
                               if (error != null) ...[
                                 const SizedBox(height: AppSpacing.lg),
                                 Container(
@@ -311,6 +354,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRoleTab(String role, String label) {
+    final isSelected = _selectedRole == role;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedRole = role),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            boxShadow: isSelected ? [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              )
+            ] : null,
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              color: isSelected ? AppTheme.primaryColor : AppTheme.textSecondaryLight,
+            ),
+          ),
+        ),
       ),
     );
   }

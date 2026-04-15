@@ -11,11 +11,11 @@ class SuperAdminDashboard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Super Admin Console'),
+        title: const Text('Organization Console'),
         actions: [
           IconButton(
-            icon: const Icon(BootstrapIcons.plus_circle),
-            onPressed: () {}, // Add Tenant
+            icon: const Icon(BootstrapIcons.box_arrow_right),
+            onPressed: () => ref.read(authStateProvider.notifier).logout(),
           ),
           const SizedBox(width: AppSpacing.sm),
         ],
@@ -25,32 +25,75 @@ class SuperAdminDashboard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildGlobalStats(),
+            _buildOrgStats(),
             const SizedBox(height: AppSpacing.xxl),
-            const Text('Tenants Management', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Pending Approvals', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: AppSpacing.lg),
-            _buildTenantsGrid(),
+            _buildApprovalQueue(),
+            const SizedBox(height: AppSpacing.xxl),
+            const Text('Manage Clinics', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: AppSpacing.lg),
+            _buildFacilitiesGrid(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildGlobalStats() {
+  Widget _buildOrgStats() {
     return Row(
       children: [
-        Expanded(child: _StatCard('Total Tenants', '42', BootstrapIcons.building, AppTheme.primaryColor)),
+        Expanded(child: _StatCard('Total Clinics', '5', BootstrapIcons.hospital, AppTheme.primaryColor)),
         const SizedBox(width: AppSpacing.lg),
-        Expanded(child: _StatCard('Active Hospitals', '156', BootstrapIcons.hospital, AppTheme.successColor)),
+        Expanded(child: _StatCard('Total Staff', '48', BootstrapIcons.people, AppTheme.successColor)),
         const SizedBox(width: AppSpacing.lg),
-        Expanded(child: _StatCard('Monthly Revenue', 'KES 2.4M', BootstrapIcons.wallet2, Colors.blue)),
+        Expanded(child: _StatCard('Monthly Revenue', 'KES 840k', BootstrapIcons.wallet2, Colors.blue)),
         const SizedBox(width: AppSpacing.lg),
-        Expanded(child: _StatCard('System Health', '99.9%', BootstrapIcons.activity, Colors.orange)),
+        Expanded(child: _StatCard('Pending Users', '3', BootstrapIcons.person_plus, Colors.orange)),
       ],
     );
   }
 
-  Widget _buildTenantsGrid() {
+  Widget _buildApprovalQueue() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+      ),
+      child: Column(
+        children: [
+          _buildApprovalItem('John Doe', 'Doctor', 'City Main Hospital', '2 hours ago'),
+          const Divider(height: 1),
+          _buildApprovalItem('Jane Smith', 'Nurse', 'Westside Clinic', '5 hours ago'),
+          const Divider(height: 1),
+          _buildApprovalItem('Robert Wilson', 'Receptionist', 'City Main Hospital', 'Yesterday'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildApprovalItem(String name, String role, String clinic, String time) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.sm),
+      leading: CircleAvatar(
+        backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+        child: Text(name[0], style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
+      ),
+      title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+      subtitle: Text('$role • $clinic • $time'),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextButton(onPressed: () {}, child: const Text('Reject', style: TextStyle(color: AppTheme.errorColor))),
+          const SizedBox(width: AppSpacing.sm),
+          ElevatedButton(onPressed: () {}, child: const Text('Approve')),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFacilitiesGrid() {
     return LayoutBuilder(
       builder: (context, constraints) {
         final crossAxisCount = constraints.maxWidth > 1200 ? 3 : (constraints.maxWidth > 800 ? 2 : 1);
@@ -61,10 +104,10 @@ class SuperAdminDashboard extends ConsumerWidget {
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: AppSpacing.lg,
             mainAxisSpacing: AppSpacing.lg,
-            childAspectRatio: 1.5,
+            childAspectRatio: 1.8,
           ),
-          itemCount: 6, // Mock data
-          itemBuilder: (context, index) => _TenantCard(index: index),
+          itemCount: 3, // Mock data
+          itemBuilder: (context, index) => _FacilityCard(index: index),
         );
       },
     );
@@ -100,14 +143,14 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _TenantCard extends StatelessWidget {
+class _FacilityCard extends StatelessWidget {
   final int index;
-  const _TenantCard({required this.index});
+  const _FacilityCard({required this.index});
 
   @override
   Widget build(BuildContext context) {
-    final names = ['Metropolitan Group', 'St. Peters Hospital', 'Afya Connect', 'MediLink Solutions', 'Guardian Healthcare', 'Unity Medical'];
-    final packages = ['HOSPITALI', 'AFYA', 'DAWA', 'HOSPITALI', 'AFYA', 'DAWA'];
+    final names = ['City Main Hospital', 'Westside Clinic', 'Eastlands Medical Centre'];
+    final codes = ['A3B9', 'C2D4', 'X1Y7'];
     
     return Card(
       child: Padding(
@@ -121,36 +164,38 @@ class _TenantCard extends StatelessWidget {
                 Expanded(
                   child: Text(names[index], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), overflow: TextOverflow.ellipsis),
                 ),
-                _StatusBadge(status: index % 3 == 0 ? 'Trial' : 'Active'),
+                _StatusBadge(status: 'Active'),
               ],
             ),
             const SizedBox(height: 4),
-            Text(packages[index], style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryColor.withOpacity(0.7))),
+            Text('Clinic Code: ${codes[index]}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
             const Spacer(),
             const Row(
               children: [
-                Icon(BootstrapIcons.hospital, size: 14, color: AppTheme.textSecondaryLight),
-                SizedBox(width: 4),
-                Text('8 Facilities', style: TextStyle(fontSize: 12, color: AppTheme.textSecondaryLight)),
-                SizedBox(width: 16),
                 Icon(BootstrapIcons.people, size: 14, color: AppTheme.textSecondaryLight),
                 SizedBox(width: 4),
-                Text('124 Users', style: TextStyle(fontSize: 12, color: AppTheme.textSecondaryLight)),
+                Text('24 Staff', style: TextStyle(fontSize: 12, color: AppTheme.textSecondaryLight)),
+                SizedBox(width: 16),
+                Icon(BootstrapIcons.activity, size: 14, color: AppTheme.textSecondaryLight),
+                SizedBox(width: 4),
+                Text('Active Now', style: TextStyle(fontSize: 12, color: AppTheme.textSecondaryLight)),
               ],
             ),
             const Divider(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                TextButton(onPressed: () {}, child: const Text('Manage')),
+                OutlinedButton(
+                  onPressed: () {}, 
+                  child: const Text('Settings'),
+                ),
                 const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: () {},
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: index % 4 == 0 ? AppTheme.errorColor : AppTheme.primaryColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    backgroundColor: AppTheme.primaryColor,
                   ),
-                  child: Text(index % 4 == 0 ? 'Suspend' : 'Monitor'),
+                  child: const Text('View Data'),
                 ),
               ],
             ),

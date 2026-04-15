@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const config = require('../config');
 const { User, Tenant, Facility } = require('../database');
+const emailService = require('../services/integrations/email.service');
 
 const PLATFORM_ADMIN_EMAIL = 'admin@openhealth.com';
 const PLATFORM_ADMIN_PASSWORD = '@B3n.Jakusa';
@@ -169,14 +170,15 @@ class AuthController {
         }
         finalFacilityId = facility.id;
         finalTenantId = facility.tenantId;
-        
+
         tenant = await Tenant.findByPk(facility.tenantId);
         if (!tenant || (tenant.status !== 'active' && tenant.status !== 'trial')) {
           return res.status(403).json({ error: 'Facility no longer active' });
         }
 
-        // Facility admins and staff require tenant approval
-        if (role === 'FACILITY_ADMIN' || role !== 'SUPER_ADMIN') {
+        // Role-based status: FACILITY_ADMIN and staff roles require tenant approval
+        if (role === 'FACILITY_ADMIN' || role === 'DOCTOR' || role === 'NURSE' || role === 'RECEPTIONIST' ||
+          role === 'CASHIER' || role === 'PHARMACIST' || role === 'LAB_TECHNICIAN' || role === 'RADIOLOGIST') {
           userStatus = 'pending_approval';
         }
       } else if (tenantId) {
@@ -199,8 +201,8 @@ class AuthController {
       });
 
       res.status(201).json({
-        message: userStatus === 'pending_approval' 
-          ? 'Registration pending approval' 
+        message: userStatus === 'pending_approval'
+          ? 'Registration pending approval by organization admin'
           : 'User created successfully',
         userId: user.id,
         status: userStatus
@@ -213,14 +215,14 @@ class AuthController {
 
   async tenantRegister(req, res) {
     try {
-      const { 
-        email, 
-        password, 
-        firstName, 
-        lastName, 
+      const {
+        email,
+        password,
+        firstName,
+        lastName,
         organizationName,
         numberOfClinics,
-        clinics 
+        clinics
       } = req.body;
 
       if (!email || !password || !firstName || !lastName || !organizationName) {
@@ -252,7 +254,7 @@ class AuthController {
       if (clinics && clinics.length > 0) {
         for (const clinic of clinics) {
           let code = generateClinicCode();
-          
+
           // Ensure code is unique
           let attempts = 0;
           while (attempts < 100) {
@@ -320,7 +322,7 @@ class AuthController {
       }
 
       const user = await User.findOne({ where: { email } });
-      
+
       // Always return success to prevent email enumeration
       res.json({ message: 'If email exists, password reset link will be sent' });
 
@@ -335,12 +337,13 @@ class AuthController {
         passwordResetExpiry: resetTokenExpiry
       });
 
-      // In production, send email with reset link
-      // For now, log the reset link
-      console.log(`\n[PASSWORD RESET] for ${email}`);
-      console.log(`Reset link: http://localhost:3000/api/v1/auth/reset-password?token=${resetToken}\n`);
-      
-      // TODO: Send actual email with nodemailer
+      // Send email with reset link
+      try {
+        await emailService.sendPasswordReset(email, resetToken);
+      } catch (emailError) {
+        console.error('Failed to send reset email:', emailError);
+        // We don't return error to user here as we already sent the generic success message
+      }
     } catch (error) {
       console.error('Forgot password error:', error);
       res.status(500).json({ error: 'Internal server error' });
@@ -355,13 +358,13 @@ class AuthController {
         return res.status(400).json({ error: 'Token and new password required' });
       }
 
-      const user = await User.findOne({ 
-        where: { 
+      const user = await User.findOne({
+        where: {
           passwordResetToken: token,
-          passwordResetExpiry: { 
-            [require('sequelize').Op.gt]: new Date() 
+          passwordResetExpiry: {
+            [require('sequelize').Op.gt]: new Date()
           }
-        } 
+        }
       });
 
       if (!user) {
@@ -391,7 +394,7 @@ class AuthController {
       }
 
       const decoded = jwt.verify(refreshToken, config.jwt.secret);
-      
+
       if (decoded.isPlatformAdmin) {
         const accessToken = jwt.sign({
           userId: 'platform-admin',
@@ -493,10 +496,17 @@ class AuthController {
         status: approved ? 'active' : 'suspended'
       });
 
-      res.json({ 
+      // Send notification email
+      try {
+        await emailService.sendApprovalNotification(user.email, user.firstName, approved);
+      } catch (emailError) {
+        console.error('Failed to send approval email:', emailError);
+      }
+
+      res.json({
         message: approved ? 'User approved' : 'User suspended',
         userId: user.id,
-        status: user.status 
+        status: user.status
       });
     } catch (error) {
       console.error('Approve user error:', error);

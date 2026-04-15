@@ -11,8 +11,7 @@ class AuthUser {
   final String role;
   final String tenantId;
   final String tenantName;
-  final String? facilityId;
-  final String? facilityName;
+  final String? facilityCode;
   final String package;
 
   AuthUser({
@@ -25,6 +24,7 @@ class AuthUser {
     required this.tenantName,
     this.facilityId,
     this.facilityName,
+    this.facilityCode,
     required this.package,
   });
 
@@ -42,6 +42,7 @@ class AuthUser {
       tenantName: tenant?['name'] ?? '',
       facilityId: facility?['id'],
       facilityName: facility?['name'],
+      facilityCode: user['facilityCode'],
       package: tenant?['package'] ?? 'DAWA',
     );
   }
@@ -111,7 +112,7 @@ class AuthNotifier extends Notifier<AsyncValue<AuthUser?>> {
     }
   }
 
-  Future<bool> login(String email, String password) async {
+  Future<bool> login(String email, String password, {String? facilityCode}) async {
     state = const AsyncValue.loading();
 
     try {
@@ -120,6 +121,7 @@ class AuthNotifier extends Notifier<AsyncValue<AuthUser?>> {
         'email': email,
         'password': password,
         'tenantId': Environment.tenantId,
+        if (facilityCode != null) 'facilityCode': facilityCode,
       });
 
       if (response.statusCode == 200) {
@@ -129,11 +131,34 @@ class AuthNotifier extends Notifier<AsyncValue<AuthUser?>> {
         state = AsyncValue.data(user);
         return true;
       }
-      state = AsyncValue.error('Invalid credentials', StackTrace.current);
+      state = AsyncValue.error('Invalid credentials or facility code', StackTrace.current);
     } catch (e, st) {
       state = AsyncValue.error('Invalid credentials', st);
     }
     return false;
+  }
+
+  Future<bool> forgotPassword(String email) async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      final response = await api.post('/auth/forgot-password', data: {'email': email});
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> resetPassword(String token, String newPassword) async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      final response = await api.post('/auth/reset-password', data: {
+        'token': token,
+        'newPassword': newPassword,
+      });
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
   }
 
   Future<void> logout() async {
@@ -149,69 +174,90 @@ class AuthNotifier extends Notifier<AsyncValue<AuthUser?>> {
     }
   }
 
-  Future<({bool success, String? error, String? tenantId})> register({
-    required String tenantName,
-    required String tenantCode,
-    required String tenantEmail,
+  Future<({bool success, String? error})> tenantRegister({
+    required String organizationName,
     required String firstName,
     required String lastName,
     required String email,
     required String password,
+    required int numberOfClinics,
+    required List<Map<String, dynamic>> clinics,
   }) async {
     state = const AsyncValue.loading();
 
     try {
       final api = ref.read(apiServiceProvider);
-
-      // 1. Create tenant
-      final tenantResponse = await api.post('/tenants', data: {
-        'name': tenantName,
-        'code': tenantCode,
-        'email': tenantEmail,
-      });
-
-      if (tenantResponse.statusCode != 200 && tenantResponse.statusCode != 201) {
-        final String error = tenantResponse.data['message']?.toString() ?? 'Failed to create tenant';
-        state = AsyncValue.error(error, StackTrace.current);
-        return (success: false, error: error, tenantId: null);
-      }
-
-      final String tenantId = tenantResponse.data['tenant']['id'].toString();
-
-      // 2. Register user
-      final registerResponse = await api.post('/auth/register', data: {
+      final response = await api.post('/auth/tenant-register', data: {
+        'organizationName': organizationName,
         'firstName': firstName,
         'lastName': lastName,
         'email': email,
         'password': password,
-        'tenantId': tenantId,
-        'role': 'owner',
+        'numberOfClinics': numberOfClinics,
+        'clinics': clinics,
       });
 
-      if (registerResponse.statusCode != 200 && registerResponse.statusCode != 201) {
-        final String error = registerResponse.data['message']?.toString() ?? 'Failed to create user';
-        state = AsyncValue.error(error, StackTrace.current);
-        return (success: false, error: error, tenantId: null);
-      }
-
-      // 3. Auto login
-      final loginResponse = await api.post('/auth/login', data: {
-        'email': email,
-        'password': password,
-      });
-
-      if (loginResponse.statusCode == 200) {
-        final user = AuthUser.fromJson(loginResponse.data);
-        await api.setTokens(loginResponse.data['accessToken'], loginResponse.data['refreshToken']);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final user = AuthUser.fromJson(response.data);
+        await api.setTokens(response.data['accessToken'], response.data['refreshToken']);
         await Environment.setTenant(user.tenantId, user.tenantName);
         state = AsyncValue.data(user);
-        return (success: true, error: null, tenantId: tenantId);
+        return (success: true, error: null);
       }
-
-      return (success: true, error: null, tenantId: tenantId);
+      
+      final String error = response.data['error'] ?? response.data['message'] ?? 'Registration failed';
+      state = AsyncValue.error(error, StackTrace.current);
+      return (success: false, error: error);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
-      return (success: false, error: e.toString(), tenantId: null);
+      return (success: false, error: e.toString());
+    }
+  }
+
+  Future<({bool success, String? error})> register({
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String password,
+    required String facilityCode,
+    required String role,
+  }) async {
+    state = const AsyncValue.loading();
+
+    try {
+      final api = ref.read(apiServiceProvider);
+      final response = await api.post('/auth/register', data: {
+        'firstName': firstName,
+        'lastName': lastName,
+        'email': email,
+        'password': password,
+        'facilityCode': facilityCode,
+        'role': role,
+      });
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Staff registration usually leads to "pending_approval" status
+        // So we might not get tokens back immediately if they can't login yet
+        final bool isPending = response.data['status'] == 'pending_approval';
+        
+        if (isPending) {
+          state = const AsyncValue.data(null);
+          return (success: true, error: 'Registration successful! Please wait for approval from your organization admin.');
+        }
+
+        final user = AuthUser.fromJson(response.data);
+        await api.setTokens(response.data['accessToken'], response.data['refreshToken']);
+        await Environment.setTenant(user.tenantId, user.tenantName);
+        state = AsyncValue.data(user);
+        return (success: true, error: null);
+      }
+      
+      final String error = response.data['error'] ?? response.data['message'] ?? 'Registration failed';
+      state = AsyncValue.error(error, StackTrace.current);
+      return (success: false, error: error);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return (success: false, error: e.toString());
     }
   }
 }

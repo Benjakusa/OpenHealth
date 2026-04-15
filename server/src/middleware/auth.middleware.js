@@ -4,14 +4,14 @@ const config = require('../config');
 const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'No token provided' });
     }
 
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, config.jwt.secret);
-    
+
     // Store full user info in request
     req.user = decoded;
     next();
@@ -80,7 +80,7 @@ const checkTenantAccess = async (req, res, next) => {
   }
 
   const tenantId = req.params.tenantId || req.body.tenantId || req.query.tenantId;
-  
+
   if (tenantId && tenantId !== req.user.tenantId && req.user.role !== 'SUPER_ADMIN') {
     return res.status(403).json({ error: 'Access denied to this tenant' });
   }
@@ -94,13 +94,24 @@ const checkFacilityAccess = async (req, res, next) => {
     return res.status(401).json({ error: 'Not authenticated' });
   }
 
-  // Platform admin and super admin can view all
-  if (req.user.isPlatformAdmin || req.user.role === 'SUPER_ADMIN') {
+  // Platform admin can do anything
+  if (req.user.isPlatformAdmin) {
     return next();
   }
 
+  // Super admin (Tenant) can view all clinics under them in read-only mode
+  if (req.user.role === 'SUPER_ADMIN') {
+    if (req.method === 'GET') {
+      return next();
+    }
+    // For non-GET methods, check if they are modifying their own tenant-level data or if we should restrict
+    // As per requirement: "Tenant (super admin) can view all clinics’ data under them in read‑only mode."
+    // This implies write operations to clinic-specific data should be restricted or handled.
+    return res.status(403).json({ error: 'Permission denied. Clinic data is read-only for tenants.' });
+  }
+
   const facilityId = req.params.facilityId || req.body.facilityId || req.query.facilityId;
-  
+
   // If user has a facilityId, they can only access that facility's data
   if (facilityId && facilityId !== req.user.facilityId) {
     return res.status(403).json({ error: 'Access denied to this facility' });

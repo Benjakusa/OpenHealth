@@ -16,6 +16,14 @@ module.exports = (sequelize) => {
         key: 'id'
       }
     },
+    facilityId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'facilities',
+        key: 'id'
+      }
+    },
     patientNumber: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -167,6 +175,7 @@ module.exports = (sequelize) => {
     timestamps: true,
     indexes: [
       { fields: ['tenant_id'] },
+      { fields: ['facility_id'] },
       { fields: ['patient_number'] },
       { fields: ['phone'] },
       { fields: ['national_id'] },
@@ -174,14 +183,14 @@ module.exports = (sequelize) => {
     ]
   });
 
-  Patient.prototype.getFullName = function() {
+  Patient.prototype.getFullName = function () {
     const parts = [this.firstName];
     if (this.middleName) parts.push(this.middleName);
     parts.push(this.lastName);
     return parts.join(' ');
   };
 
-  Patient.prototype.getAge = function() {
+  Patient.prototype.getAge = function () {
     const today = new Date();
     const birthDate = new Date(this.dateOfBirth);
     let age = today.getFullYear() - birthDate.getFullYear();
@@ -192,13 +201,13 @@ module.exports = (sequelize) => {
     return age;
   };
 
-  Patient.prototype.getAgeInMonths = function() {
+  Patient.prototype.getAgeInMonths = function () {
     const today = new Date();
     const birthDate = new Date(this.dateOfBirth);
     return (today.getFullYear() - birthDate.getFullYear()) * 12 + (today.getMonth() - birthDate.getMonth());
   };
 
-  Patient.generatePatientNumber = function(tenantSlug) {
+  Patient.generatePatientNumber = function (tenantSlug) {
     const year = new Date().getFullYear();
     const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
     return `${tenantSlug.toUpperCase().substring(0, 3)}-${year}-${random}`;

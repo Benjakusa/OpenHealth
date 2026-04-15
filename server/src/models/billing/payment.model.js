@@ -12,6 +12,11 @@ module.exports = (sequelize) => {
       allowNull: false,
       references: { model: 'tenants', key: 'id' }
     },
+    facilityId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: 'facilities', key: 'id' }
+    },
     invoiceId: {
       type: DataTypes.UUID,
       references: { model: 'invoices', key: 'id' }
@@ -107,6 +112,7 @@ module.exports = (sequelize) => {
     timestamps: true,
     indexes: [
       { fields: ['tenant_id'] },
+      { fields: ['facility_id'] },
       { fields: ['invoice_id'] },
       { fields: ['patient_id'] },
       { fields: ['reference'] },
@@ -115,7 +121,7 @@ module.exports = (sequelize) => {
     ]
   });
 
-  Payment.generateReceiptNumber = function(tenantSlug) {
+  Payment.generateReceiptNumber = function (tenantSlug) {
     const date = new Date();
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');

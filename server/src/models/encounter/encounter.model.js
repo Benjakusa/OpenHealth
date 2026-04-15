@@ -15,6 +15,14 @@ module.exports = (sequelize) => {
         key: 'id'
       }
     },
+    facilityId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: 'facilities',
+        key: 'id'
+      }
+    },
     encounterNumber: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -155,6 +163,7 @@ module.exports = (sequelize) => {
     timestamps: true,
     indexes: [
       { fields: ['tenant_id'] },
+      { fields: ['facility_id'] },
       { fields: ['patient_id'] },
       { fields: ['provider_id'] },
       { fields: ['status'] },
@@ -163,7 +172,7 @@ module.exports = (sequelize) => {
     ]
   });
 
-  Encounter.generateEncounterNumber = function(tenantSlug) {
+  Encounter.generateEncounterNumber = function (tenantSlug) {
     const date = new Date();
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -172,12 +181,12 @@ module.exports = (sequelize) => {
     return `${tenantSlug.toUpperCase().substring(0, 3)}-${year}${month}${day}-${random}`;
   };
 
-  Encounter.prototype.getDuration = function() {
+  Encounter.prototype.getDuration = function () {
     if (!this.startedAt || !this.completedAt) return null;
     return Math.round((new Date(this.completedAt) - new Date(this.startedAt)) / 1000 / 60);
   };
 
-  Encounter.prototype.addPrescription = function(prescription) {
+  Encounter.prototype.addPrescription = function (prescription) {
     const prescriptions = this.prescriptions || [];
     prescriptions.push({
       ...prescription,
@@ -187,7 +196,7 @@ module.exports = (sequelize) => {
     this.prescriptions = prescriptions;
   };
 
-  Encounter.prototype.addLabOrder = function(order) {
+  Encounter.prototype.addLabOrder = function (order) {
     const labOrders = this.labOrders || [];
     labOrders.push({
       ...order,
