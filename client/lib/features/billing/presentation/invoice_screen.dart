@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bootstrap_icons/bootstrap_icons.dart';
 import '../../../core/config/theme.dart';
 import '../../../core/services/database_service.dart';
 import '../../patients/data/patient_provider.dart';
@@ -17,55 +18,94 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
   @override
   Widget build(BuildContext context) {
     final invoicesAsync = ref.watch(invoiceListProvider(_filter));
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < 768;
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: SegmentedButton<String>(
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Column(
+        children: [
+          _buildHeader(isMobile),
+          Expanded(
+            child: invoicesAsync.when(
+              data: (invoices) => invoices.isEmpty 
+                  ? _buildEmptyState() 
+                  : _buildList(invoices, isMobile),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, _) => Center(child: Text('Error: $err')),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(bool isMobile) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      color: AppTheme.surfaceLight,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Text('Invoices & Billing', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const Spacer(),
+              if (!isMobile)
+                ElevatedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(BootstrapIcons.plus, size: 18),
+                  label: const Text('Add Charge'),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          SegmentedButton<String>(
             segments: const [
-              ButtonSegment(value: 'pending', label: Text('Pending')),
-              ButtonSegment(value: 'partially_paid', label: Text('Partial')),
-              ButtonSegment(value: 'paid', label: Text('Paid')),
-              ButtonSegment(value: 'all', label: Text('All')),
+              ButtonSegment(value: 'pending', label: Text('Pending'), icon: Icon(BootstrapIcons.hourglass, size: 14)),
+              ButtonSegment(value: 'partially_paid', label: Text('Partial'), icon: Icon(BootstrapIcons.plus_circle, size: 14)),
+              ButtonSegment(value: 'paid', label: Text('Paid'), icon: Icon(BootstrapIcons.check_circle, size: 14)),
+              ButtonSegment(value: 'all', label: Text('All'), icon: Icon(BootstrapIcons.list, size: 14)),
             ],
             selected: {_filter},
-            onSelectionChanged: (selection) {
-              setState(() => _filter = selection.first);
-            },
+            onSelectionChanged: (s) => setState(() => _filter = s.first),
+            showSelectedIcon: false,
           ),
-        ),
-        Expanded(
-          child: invoicesAsync.when(
-            data: (invoices) {
-              if (invoices.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.receipt_long, size: 64, color: Colors.grey.shade400),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No invoices found',
-                        style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
-                      ),
-                    ],
-                  ),
-                );
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: invoices.length,
-                itemBuilder: (context, index) {
-                  return _InvoiceCard(invoice: invoices[index]);
-                },
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) => Center(child: Text('Error: $error')),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildList(List<BillingData> invoices, bool isMobile) {
+    return isMobile 
+      ? ListView.separated(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          itemCount: invoices.length,
+          separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
+          itemBuilder: (context, i) => _InvoiceCard(invoice: invoices[i]),
+        )
+      : GridView.builder(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: AppSpacing.lg,
+            mainAxisSpacing: AppSpacing.lg,
+            mainAxisExtent: 100,
           ),
-        ),
-      ],
+          itemCount: invoices.length,
+          itemBuilder: (context, i) => _InvoiceCard(invoice: invoices[i]),
+        );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(BootstrapIcons.receipt, size: 48, color: AppTheme.textSecondaryLight.withOpacity(0.3)),
+          const SizedBox(height: AppSpacing.md),
+          const Text('No invoices found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        ],
+      ),
     );
   }
 }
@@ -78,87 +118,59 @@ final invoiceListProvider = FutureProvider.family<List<BillingData>, String>((re
 
 class _InvoiceCard extends StatelessWidget {
   final BillingData invoice;
-
   const _InvoiceCard({required this.invoice});
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            _buildStatusIcon(invoice.status),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      child: InkWell(
+        onTap: () {},
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Row(
+            children: [
+              _buildStatusIcon(invoice.status),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(invoice.invoiceNumber, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text('Patient: ${invoice.patientId.substring(0, 8)}', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryLight)),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    invoice.invoiceNumber,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Patient: ${invoice.patientId.substring(0, 8)}...',
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                  ),
+                  Text('KES ${invoice.total.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor, fontSize: 16)),
+                  if (invoice.balance > 0)
+                    Text('Bal: KES ${invoice.balance.toStringAsFixed(0)}', style: const TextStyle(fontSize: 11, color: AppTheme.errorColor, fontWeight: FontWeight.bold)),
                 ],
               ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  'KES ${invoice.total.toStringAsFixed(2)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                const SizedBox(height: 4),
-                if (invoice.balance > 0)
-                  Text(
-                    'Balance: KES ${invoice.balance.toStringAsFixed(2)}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                  ),
-              ],
-            ),
-            const SizedBox(width: 8),
-            Icon(Icons.chevron_right, color: Colors.grey.shade400),
-          ],
+              const SizedBox(width: AppSpacing.md),
+              const Icon(BootstrapIcons.chevron_right, size: 14, color: AppTheme.textSecondaryLight),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildStatusIcon(String status) {
-    IconData icon;
     Color color;
-
+    IconData icon;
     switch (status) {
-      case 'paid':
-        icon = Icons.check_circle;
-        color = AppTheme.successColor;
-        break;
-      case 'partially_paid':
-        icon = Icons.payments;
-        color = AppTheme.warningColor;
-        break;
-      case 'pending':
-      case 'draft':
-        icon = Icons.schedule;
-        color = AppTheme.infoColor;
-        break;
-      default:
-        icon = Icons.receipt;
-        color = Colors.grey;
+      case 'paid': color = AppTheme.successColor; icon = BootstrapIcons.check_circle_fill; break;
+      case 'partially_paid': color = Colors.orange; icon = BootstrapIcons.plus_circle; break;
+      default: color = AppTheme.primaryColor; icon = BootstrapIcons.hourglass_split;
     }
-
     return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(10)),
       child: Icon(icon, color: color, size: 20),
     );
   }

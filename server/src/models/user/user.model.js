@@ -42,6 +42,7 @@ module.exports = (sequelize) => {
     role: {
       type: DataTypes.ENUM(
         'SUPER_ADMIN',
+        'PLATFORM_ADMIN',
         'FACILITY_ADMIN',
         'DOCTOR',
         'NURSE',
@@ -56,6 +57,18 @@ module.exports = (sequelize) => {
         'REPORTS_ANALYST'
       ),
       defaultValue: 'RECEPTIONIST'
+    },
+    facilityId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'facilities',
+        key: 'id'
+      }
+    },
+    status: {
+      type: DataTypes.ENUM('active', 'pending_approval', 'suspended'),
+      defaultValue: 'active'
     },
     specialty: {
       type: DataTypes.STRING,

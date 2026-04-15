@@ -10,6 +10,7 @@ const sequelize = new Sequelize(config.database.name, config.database.username, 
 });
 
 const Tenant = require('../models/tenant/tenant.model')(sequelize);
+const Facility = require('../models/tenant/facility.model')(sequelize);
 const User = require('../models/user/user.model')(sequelize);
 const Patient = require('../models/patient/patient.model')(sequelize);
 const Encounter = require('../models/encounter/encounter.model')(sequelize);
@@ -34,10 +35,20 @@ const Prescription = require('../models/pharmacy/prescription.model')(sequelize)
 Tenant.hasMany(User, { foreignKey: 'tenantId', as: 'users' });
 User.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
 
+Tenant.hasMany(Facility, { foreignKey: 'tenantId', as: 'facilities' });
+Facility.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
+
+Facility.hasMany(User, { foreignKey: 'facilityId', as: 'users' });
+User.belongsTo(Facility, { foreignKey: 'facilityId', as: 'facility' });
+
 Tenant.hasMany(Patient, { foreignKey: 'tenantId', as: 'patients' });
 Patient.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
+Facility.hasMany(Patient, { foreignKey: 'facilityId', as: 'patients' });
+Patient.belongsTo(Facility, { foreignKey: 'facilityId', as: 'facility' });
 
 Tenant.hasMany(Encounter, { foreignKey: 'tenantId', as: 'encounters' });
+Facility.hasMany(Encounter, { foreignKey: 'facilityId', as: 'encounters' });
+Encounter.belongsTo(Facility, { foreignKey: 'facilityId', as: 'facility' });
 Encounter.belongsTo(Patient, { foreignKey: 'patientId', as: 'patient' });
 Encounter.belongsTo(User, { foreignKey: 'providerId', as: 'provider' });
 
@@ -101,6 +112,7 @@ module.exports = {
   sequelize,
   models: {
     Tenant,
+    Facility,
     User,
     Patient,
     Encounter,
@@ -123,6 +135,7 @@ module.exports = {
     Prescription
   },
   Tenant,
+  Facility,
   User,
   Patient,
   Encounter,

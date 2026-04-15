@@ -1,36 +1,55 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:bootstrap_icons/bootstrap_icons.dart';
 import '../../../core/config/theme.dart';
 import '../data/lab_provider.dart';
 
-final labQueueTabProvider = StateProvider<int>((ref) => 0);
-
-class LabQueueScreen extends ConsumerWidget {
+class LabQueueScreen extends ConsumerStatefulWidget {
   const LabQueueScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return DefaultTabController(
-      length: 3,
-      child: Column(
+  ConsumerState<LabQueueScreen> createState() => _LabQueueScreenState();
+}
+
+class _LabQueueScreenState extends ConsumerState<LabQueueScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        title: const Text('Laboratory Queue'),
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          tabs: const [
+            Tab(text: 'Orders Pending'),
+            Tab(text: 'Specimen Collected'),
+            Tab(text: 'Results Completed'),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          const TabBar(
-            tabs: [
-              Tab(text: 'Pending'),
-              Tab(text: 'Collected'),
-              Tab(text: 'Completed'),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                _LabOrderList(status: 'pending'),
-                _LabOrderList(status: 'collected'),
-                _LabOrderList(status: 'completed'),
-              ],
-            ),
-          ),
+          _LabOrderList(status: 'pending'),
+          _LabOrderList(status: 'collected'),
+          _LabOrderList(status: 'completed'),
         ],
       ),
     );
@@ -39,65 +58,39 @@ class LabQueueScreen extends ConsumerWidget {
 
 class _LabOrderList extends ConsumerWidget {
   final String status;
-
   const _LabOrderList({required this.status});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ordersAsync = ref.watch(labQueueProvider(status));
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < 768;
 
     return ordersAsync.when(
-      data: (orders) {
-        if (orders.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.science_outlined, size: 64, color: Colors.grey.shade400),
-                const SizedBox(height: 16),
-                Text(
-                  'No ${status} orders',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(labQueueProvider(status));
-          },
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: orders.length,
-            itemBuilder: (context, index) {
-              final order = orders[index];
-              return _LabOrderCard(
-                order: order,
-                onProcess: () {
-                  context.push('/lab/order/${order.id}');
-                },
-              );
-            },
-          ),
-        );
-      },
+      data: (orders) => orders.isEmpty ? _buildEmptyState() : _buildList(orders, isMobile),
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: AppTheme.errorColor),
-            const SizedBox(height: 16),
-            Text('Error: $error'),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => ref.invalidate(labQueueProvider(status)),
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
+      error: (e, _) => Center(child: Text('Error: $e')),
+    );
+  }
+
+  Widget _buildList(List<LabOrder> orders, bool isMobile) {
+    return ListView.separated(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      itemCount: orders.length,
+      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
+      itemBuilder: (context, i) => _LabOrderCard(order: orders[i]),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(BootstrapIcons.droplet_half, size: 48, color: AppTheme.textSecondaryLight.withOpacity(0.3)),
+          const SizedBox(height: AppSpacing.md),
+          Text('No $status lab orders', style: const TextStyle(fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }
@@ -105,74 +98,50 @@ class _LabOrderList extends ConsumerWidget {
 
 final labQueueProvider = FutureProvider.family<List<LabOrder>, String>((ref, status) async {
   final labNotifier = ref.read(labProvider.notifier);
-  final orders = await labNotifier.getLabOrders(status: status);
-  return orders;
+  return await labNotifier.getLabOrders(status: status);
 });
 
 class _LabOrderCard extends StatelessWidget {
   final LabOrder order;
-  final VoidCallback? onProcess;
-
-  const _LabOrderCard({required this.order, this.onProcess});
+  const _LabOrderCard({required this.order});
 
   @override
   Widget build(BuildContext context) {
+    final date = '${order.orderedAt.day}/${order.orderedAt.month} ${order.orderedAt.hour}:${order.orderedAt.minute.toString().padLeft(2, '0')}';
+    
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
-        onTap: onProcess,
-        borderRadius: BorderRadius.circular(12),
+        onTap: () => context.push('/lab/order/${order.id}'),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Row(
             children: [
-              _buildPriorityIndicator(order.priority),
-              const SizedBox(width: 12),
+              _buildPriorityLine(order.priority),
+              const SizedBox(width: AppSpacing.lg),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          order.patientName ?? 'Unknown Patient',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          order.orderNumber,
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                        ),
-                      ],
-                    ),
+                    Text(order.patientName ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 4),
-                    Text(
-                      order.testName,
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
-                    ),
+                    Text(order.testName, style: const TextStyle(fontSize: 13, color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Icon(Icons.access_time, size: 14, color: Colors.grey.shade500),
-                        const SizedBox(width: 4),
-                        Text(
-                          _formatDateTime(order.orderedAt),
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                        ),
-                        if (order.specimens != null && order.specimens!.isNotEmpty) ...[
-                          const SizedBox(width: 12),
-                          Chip(
-                            label: Text(order.specimens!.first, style: const TextStyle(fontSize: 11)),
-                            padding: EdgeInsets.zero,
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ],
+                        const Icon(BootstrapIcons.clock, size: 12, color: AppTheme.textSecondaryLight),
+                        const SizedBox(width: 6),
+                        Text(date, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondaryLight)),
+                        const Spacer(),
+                        if (order.specimens != null && order.specimens!.isNotEmpty)
+                          _buildBadge(order.specimens!.first, AppTheme.infoColor),
                       ],
                     ),
                   ],
                 ),
               ),
-              _buildStatusChip(order.status),
+              const SizedBox(width: AppSpacing.md),
+              const Icon(BootstrapIcons.chevron_right, size: 14, color: AppTheme.textSecondaryLight),
             ],
           ),
         ),
@@ -180,67 +149,16 @@ class _LabOrderCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusChip(String status) {
-    Color color;
-    String label;
-
-    switch (status) {
-      case 'pending':
-        color = AppTheme.warningColor;
-        label = 'Pending';
-        break;
-      case 'collected':
-        color = AppTheme.infoColor;
-        label = 'Collected';
-        break;
-      case 'processing':
-        color = AppTheme.primaryColor;
-        label = 'Processing';
-        break;
-      case 'completed':
-      case 'resulted':
-        color = AppTheme.successColor;
-        label = 'Completed';
-        break;
-      default:
-        color = Colors.grey;
-        label = status;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: color),
-      ),
-    );
+  Widget _buildPriorityLine(String p) {
+    final color = (p == 'urgent' || p == 'stat') ? AppTheme.errorColor : (p == 'high' ? AppTheme.warningColor : AppTheme.successColor);
+    return Container(width: 4, height: 40, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)));
   }
 
-  Widget _buildPriorityIndicator(String priority) {
-    Color color;
-    if (priority == 'urgent' || priority == 'stat') {
-      color = AppTheme.errorColor;
-    } else if (priority == 'high') {
-      color = AppTheme.warningColor;
-    } else {
-      color = AppTheme.successColor;
-    }
-
+  Widget _buildBadge(String label, Color color) {
     return Container(
-      width: 4,
-      height: 56,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(2),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+      child: Text(label.toUpperCase(), style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
     );
-  }
-
-  String _formatDateTime(DateTime dt) {
-    return '${dt.day}/${dt.month}/${dt.year} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
   }
 }

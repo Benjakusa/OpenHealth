@@ -11,6 +11,8 @@ class AuthUser {
   final String role;
   final String tenantId;
   final String tenantName;
+  final String? facilityId;
+  final String? facilityName;
   final String package;
 
   AuthUser({
@@ -21,12 +23,15 @@ class AuthUser {
     required this.role,
     required this.tenantId,
     required this.tenantName,
+    this.facilityId,
+    this.facilityName,
     required this.package,
   });
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
     final user = json['user'] as Map<String, dynamic>;
     final tenant = user['tenant'] as Map<String, dynamic>?;
+    final facility = user['facility'] as Map<String, dynamic>?;
     return AuthUser(
       id: user['id'],
       email: user['email'],
@@ -35,6 +40,8 @@ class AuthUser {
       role: user['role'],
       tenantId: tenant?['id'] ?? '',
       tenantName: tenant?['name'] ?? '',
+      facilityId: facility?['id'],
+      facilityName: facility?['name'],
       package: tenant?['package'] ?? 'DAWA',
     );
   }

@@ -15,8 +15,11 @@ const paymentRoutes = require('./payment.routes');
 const claimRoutes = require('./claim.routes');
 const pharmacyRoutes = require('./pharmacy.routes');
 
+const facilityRoutes = require('./facility.routes');
+
 router.use('/auth', authRoutes);
 router.use('/tenants', tenantRoutes);
+router.use('/facilities', facilityRoutes);
 router.use('/users', userRoutes);
 router.use('/patients', patientRoutes);
 router.use('/encounters', encounterRoutes);

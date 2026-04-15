@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:bootstrap_icons/bootstrap_icons.dart';
 import '../../../core/config/theme.dart';
-import '../presentation/auth_controller.dart';
+import '../../../core/config/environment.dart';
+import '../../../core/services/api_service.dart';
+
+final apiServiceProvider = Provider<ApiService>((ref) => ApiService());
 
 class SetupScreen extends ConsumerStatefulWidget {
   const SetupScreen({super.key});
@@ -16,6 +20,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   final _tenantIdController = TextEditingController();
   bool _isLoading = false;
   String? _error;
+  bool _showConnectForm = false;
 
   @override
   void dispose() {
@@ -31,156 +36,214 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       _error = null;
     });
 
-    final success = await ref.read(authStateProvider.notifier).setupTenant(
-      _tenantIdController.text.trim(),
-    );
-
-    if (mounted) {
-      setState(() => _isLoading = false);
-
-      if (success) {
-        context.go('/login');
+    try {
+      final api = ref.read(apiServiceProvider);
+      final response = await api.get('/tenants/${_tenantIdController.text.trim()}');
+      
+      if (response.statusCode == 200) {
+        await Environment.setTenant(
+          response.data['id'],
+          response.data['name'],
+        );
+        if (mounted) {
+          context.go('/login');
+        }
       } else {
         setState(() => _error = 'Invalid Tenant ID. Please check and try again.');
       }
+    } catch (e) {
+      setState(() => _error = 'Connection failed. Please check your internet.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Icon(
-                    Icons.local_hospital,
-                    size: 48,
-                    color: Colors.white,
-                  ),
+      backgroundColor: AppTheme.backgroundLight,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            _buildHero(context),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.xxl),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1000),
+                child: _showConnectForm ? _buildConnectForm(context) : _buildMainMenu(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHero(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width >= 1024;
+    return Container(
+      width: double.infinity,
+      color: AppTheme.primaryColor,
+      padding: EdgeInsets.symmetric(
+        vertical: isDesktop ? AppSpacing.xxl * 2 : AppSpacing.xxl,
+        horizontal: AppSpacing.xl,
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
-                const SizedBox(height: 24),
-                const Text(
-                  'OpenHealth',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryColor,
-                  ),
+                child: const Icon(BootstrapIcons.heart_pulse_fill, color: AppTheme.primaryColor, size: 32),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              const Text(
+                'OpenHealth',
+                style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          const Text(
+            'Healthcare Management evolved.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold, height: 1.1),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            'Unified solution for clinics, dispensaries, and hospitals.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 18),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMainMenu(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 768;
+    return Column(
+      children: [
+        if (isMobile) ...[
+          _ActionCard(
+            icon: BootstrapIcons.person_plus,
+            title: 'New Facility',
+            subtitle: 'Register your hospital or clinic',
+            color: Colors.teal,
+            onTap: () => context.go('/register'),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _ActionCard(
+            icon: BootstrapIcons.box_arrow_in_right,
+            title: 'Staff Login',
+            subtitle: 'Sign in to your account',
+            color: AppTheme.primaryColor,
+            onTap: () => context.go('/login'),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _ActionCard(
+            icon: BootstrapIcons.link_45deg,
+            title: 'Connect',
+            subtitle: 'Link existing facility',
+            color: Colors.orange,
+            onTap: () => setState(() => _showConnectForm = true),
+          ),
+        ] else
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _ActionCard(
+                  icon: BootstrapIcons.person_plus,
+                  title: 'Register Facility',
+                  subtitle: 'Start managing your healthcare operations with our secure SaaS platform.',
+                  color: Colors.teal,
+                  onTap: () => context.go('/register'),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Multi-tenant Healthcare Management',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey.shade600,
-                  ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: _ActionCard(
+                  icon: BootstrapIcons.box_arrow_in_right,
+                  title: 'Staff Login',
+                  subtitle: 'Access your facility dashboard, patient records, and pharmacy queues.',
+                  color: AppTheme.primaryColor,
+                  onTap: () => context.go('/login'),
                 ),
-                const SizedBox(height: 48),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const Text(
-                            'Connect to Your Facility',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Enter your Tenant ID to connect to your hospital\'s data.',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          TextFormField(
-                            controller: _tenantIdController,
-                            decoration: const InputDecoration(
-                              labelText: 'Tenant ID',
-                              hintText: 'e.g., kmc, mgh, stmarys',
-                              prefixIcon: Icon(Icons.business),
-                            ),
-                            textInputAction: TextInputAction.done,
-                            onFieldSubmitted: (_) => _setup(),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter your Tenant ID';
-                              }
-                              return null;
-                            },
-                          ),
-                          if (_error != null) ...[
-                            const SizedBox(height: 12),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppTheme.errorColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.error_outline, 
-                                       color: AppTheme.errorColor, size: 20),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      _error!,
-                                      style: TextStyle(
-                                        color: AppTheme.errorColor,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 24),
-                          SizedBox(
-                            height: 48,
-                            child: ElevatedButton(
-                              onPressed: _isLoading ? null : _setup,
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : const Text('Connect'),
-                            ),
-                          ),
-                        ],
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: _ActionCard(
+                  icon: BootstrapIcons.link_45deg,
+                  title: 'Connect Existing',
+                  subtitle: 'Enter your facility ID to link this device to your hospital system.',
+                  color: Colors.orange,
+                  onTap: () => setState(() => _showConnectForm = true),
+                ),
+              ),
+            ],
+          ),
+        const SizedBox(height: AppSpacing.xxl),
+        const Divider(),
+        const SizedBox(height: AppSpacing.xxl),
+        _buildFeaturesGrid(),
+      ],
+    );
+  }
+
+  Widget _buildConnectForm(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(BootstrapIcons.arrow_left),
+                        onPressed: () => setState(() => _showConnectForm = false),
                       ),
+                      const Text('Connect Facility', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  TextFormField(
+                    controller: _tenantIdController,
+                    decoration: const InputDecoration(
+                      labelText: 'Facility/Tenant ID',
+                      prefixIcon: Icon(BootstrapIcons.building),
+                      hintText: 'e.g. city-hosp-01',
+                    ),
+                    onFieldSubmitted: (_) => _setup(),
+                    validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    Text(_error!, style: const TextStyle(color: AppTheme.errorColor, fontSize: 13)),
+                  ],
+                  const SizedBox(height: AppSpacing.xl),
+                  SizedBox(
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _setup,
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                      child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Verify & Connect'),
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                TextButton(
-                  onPressed: () => _showHelpDialog(context),
-                  child: const Text('Need help finding your Tenant ID?'),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -188,43 +251,90 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     );
   }
 
-  void _showHelpDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Finding Your Tenant ID'),
-        content: const SingleChildScrollView(
+  Widget _buildFeaturesGrid() {
+    return LayoutBuilder(builder: (context, constraints) {
+      final cols = constraints.maxWidth > 800 ? 3 : (constraints.maxWidth > 500 ? 2 : 1);
+      return GridView.count(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisCount: cols,
+        mainAxisSpacing: AppSpacing.xl,
+        crossAxisSpacing: AppSpacing.xl,
+        childAspectRatio: 2.5,
+        children: [
+          _buildFeatureItem(BootstrapIcons.people, 'Patient Records', 'Complete health history and demographics.'),
+          _buildFeatureItem(BootstrapIcons.clipboard_pulse, 'Triaging', 'Track vital signs and emergency status.'),
+          _buildFeatureItem(BootstrapIcons.capsule, 'Pharmacy', 'Inventory, dispensing, and prescriptions.'),
+          _buildFeatureItem(BootstrapIcons.droplet_half, 'Laboratory', 'Order management and electronic results.'),
+          _buildFeatureItem(BootstrapIcons.cash_stack, 'Billing', 'Invoicing, payments, and insurance claims.'),
+          _buildFeatureItem(BootstrapIcons.graph_up, 'Reporting', 'Real-time analytics and morbidity data.'),
+        ],
+      );
+    });
+  }
+
+  Widget _buildFeatureItem(IconData icon, String title, String desc) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: AppTheme.primaryColor, size: 28),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                'Your Tenant ID is provided when your facility is set up in OpenHealth.',
-                style: TextStyle(height: 1.5),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: AppSpacing.xs),
+              Text(desc, style: const TextStyle(color: AppTheme.textSecondaryLight, fontSize: 13)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ActionCard({required this.icon, required this.title, required this.subtitle, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                child: Icon(icon, color: color, size: 32),
               ),
-              SizedBox(height: 16),
-              Text(
-                'It looks like:',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              SizedBox(height: 8),
-              Text('• kmc (Kenyatta Medical Centre)'),
-              Text('• mgh (Mombasa General Hospital)'),
-              Text('• stmarys (St. Mary\'s Clinic)'),
-              SizedBox(height: 16),
-              Text(
-                'Contact your facility administrator or OpenHealth support if you don\'t have this ID.',
-                style: TextStyle(height: 1.5),
+              const SizedBox(height: AppSpacing.xl),
+              Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: AppSpacing.sm),
+              Text(subtitle, style: const TextStyle(color: AppTheme.textSecondaryLight, fontSize: 14)),
+              const SizedBox(height: AppSpacing.xl),
+              Row(
+                children: [
+                  Text('Get Started', style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+                  const SizedBox(width: AppSpacing.sm),
+                  Icon(BootstrapIcons.arrow_right, color: color, size: 16),
+                ],
               ),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
       ),
     );
   }

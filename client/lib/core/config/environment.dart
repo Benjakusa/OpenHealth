@@ -17,14 +17,14 @@ class Environment {
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   static Future<void> init() async {
-    if (kReleaseMode) {
+    if (kReleaseMode && !kIsWeb) {
       isProduction = true;
       apiBaseUrl = 'https://api.openhealth.example.com';
     } else {
       isDevelopment = true;
-      apiBaseUrl = 'http://localhost:3000/api/v1';
+      // Use localhost even in release mode if running on web locally
+      apiBaseUrl = 'http://localhost:3000';
     }
-
     await _loadEnvironment();
   }
 
@@ -33,6 +33,8 @@ class Environment {
     if (storedTenantId != null) {
       tenantId = storedTenantId;
       tenantName = await _secureStorage.read(key: 'tenant_name') ?? '';
+      facilityId = await _secureStorage.read(key: 'facility_id');
+      facilityName = await _secureStorage.read(key: 'facility_name');
     }
   }
 
@@ -43,9 +45,26 @@ class Environment {
     await _secureStorage.write(key: 'tenant_name', value: name);
   }
 
+  static Future<void> setFacility(String? id, String? name) async {
+    facilityId = id;
+    facilityName = name;
+    if (id != null) {
+      await _secureStorage.write(key: 'facility_id', value: id);
+    } else {
+      await _secureStorage.delete(key: 'facility_id');
+    }
+    if (name != null) {
+      await _secureStorage.write(key: 'facility_name', value: name);
+    } else {
+      await _secureStorage.delete(key: 'facility_name');
+    }
+  }
+
   static Future<void> clearTenant() async {
     tenantId = '';
     tenantName = '';
+    facilityId = null;
+    facilityName = null;
     await _secureStorage.delete(key: 'tenant_id');
     await _secureStorage.delete(key: 'tenant_name');
   }

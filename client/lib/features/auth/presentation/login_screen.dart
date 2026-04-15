@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:bootstrap_icons/bootstrap_icons.dart';
 import '../../../core/config/theme.dart';
 import '../../../core/config/environment.dart';
 import 'auth_controller.dart';
@@ -43,162 +44,294 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authStateProvider);
     final isLoading = authState.isLoading;
     final error = authState.error?.toString();
+    final size = MediaQuery.of(context).size;
+    final isDesktop = size.width >= 1024;
 
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(
-                    Icons.local_hospital,
-                    size: 36,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Welcome Back',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  Environment.tenantName.isNotEmpty
-                      ? 'Signed in to ${Environment.tenantName}'
-                      : 'Sign in to continue',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Form(
-                      key: _formKey,
+      backgroundColor: AppTheme.backgroundLight,
+      body: Row(
+        children: [
+          if (isDesktop)
+            Expanded(
+              flex: 3,
+              child: Container(
+                color: AppTheme.primaryColor,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Opacity(
+                        opacity: 0.1,
+                        child: CustomPaint(
+                          painter: _GridPainter(),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(AppSpacing.xxl),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          TextFormField(
-                            controller: _emailController,
-                            decoration: const InputDecoration(
-                              labelText: 'Email',
-                              prefixIcon: Icon(Icons.email_outlined),
-                            ),
-                            keyboardType: TextInputType.emailAddress,
-                            textInputAction: TextInputAction.next,
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter your email';
-                              }
-                              if (!value.contains('@')) {
-                                return 'Please enter a valid email';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _passwordController,
-                            decoration: InputDecoration(
-                              labelText: 'Password',
-                              prefixIcon: const Icon(Icons.lock_outlined),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined,
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(AppSpacing.sm),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(AppRadius.md),
                                 ),
-                                onPressed: () {
-                                  setState(() => _obscurePassword = !_obscurePassword);
-                                },
+                                child: const Icon(
+                                  BootstrapIcons.heart_pulse_fill,
+                                  color: AppTheme.primaryColor,
+                                  size: 32,
+                                ),
                               ),
-                            ),
-                            obscureText: _obscurePassword,
-                            textInputAction: TextInputAction.done,
-                            onFieldSubmitted: (_) => _login(),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your password';
-                              }
-                              return null;
-                            },
+                              const SizedBox(width: AppSpacing.md),
+                              const Text(
+                                'OpenHealth',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
-                          if (error != null) ...[
-                            const SizedBox(height: 16),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppTheme.errorColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.error_outline,
-                                       color: AppTheme.errorColor, size: 20),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      error,
-                                      style: TextStyle(
-                                        color: AppTheme.errorColor,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                          const Spacer(),
+                          const Text(
+                            'Modern Healthcare\nManagement.',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 48,
+                              fontWeight: FontWeight.bold,
+                              height: 1.1,
                             ),
-                          ],
-                          const SizedBox(height: 24),
-                          SizedBox(
-                            height: 48,
-                            child: ElevatedButton(
-                              onPressed: isLoading ? null : _login,
-                              child: isLoading
-                                  ? const SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : const Text('Sign In'),
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
+                          Text(
+                            'Streamlined clinical workflows, patient records, and hospital operations in one secure platform.',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.8),
+                              fontSize: 18,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            'v1.0.0 © 2024 OpenHealth Systems',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.5),
+                              fontSize: 12,
                             ),
                           ),
                         ],
                       ),
                     ),
+                  ],
+                ),
+              ),
+            ),
+          Expanded(
+            flex: 2,
+            child: Container(
+              color: AppTheme.surfaceLight,
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppSpacing.xl),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 400),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (!isDesktop) ...[
+                          const Icon(
+                            BootstrapIcons.heart_pulse_fill,
+                            color: AppTheme.primaryColor,
+                            size: 48,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          const Text(
+                            'OpenHealth',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primaryColor,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xxl),
+                        ],
+                        const Text(
+                          'Staff Login',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimaryLight,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          Environment.tenantName.isNotEmpty
+                              ? 'Accessing ${Environment.tenantName}'
+                              : 'Sign in to your facility account',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: AppTheme.textSecondaryLight,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xxl),
+                        Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              TextFormField(
+                                controller: _emailController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Email Address',
+                                  prefixIcon: Icon(BootstrapIcons.envelope),
+                                  hintText: 'name@hospital.com',
+                                ),
+                                keyboardType: TextInputType.emailAddress,
+                                validator: (value) => 
+                                  value == null || value.isEmpty ? 'Required' : null,
+                              ),
+                              const SizedBox(height: AppSpacing.lg),
+                              TextFormField(
+                                controller: _passwordController,
+                                decoration: InputDecoration(
+                                  labelText: 'Password',
+                                  prefixIcon: const Icon(BootstrapIcons.lock),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscurePassword 
+                                        ? BootstrapIcons.eye_slash 
+                                        : BootstrapIcons.eye,
+                                    ),
+                                    onPressed: () => 
+                                      setState(() => _obscurePassword = !_obscurePassword),
+                                  ),
+                                ),
+                                obscureText: _obscurePassword,
+                                onFieldSubmitted: (_) => _login(),
+                                validator: (value) => 
+                                  value == null || value.isEmpty ? 'Required' : null,
+                              ),
+                              if (error != null) ...[
+                                const SizedBox(height: AppSpacing.lg),
+                                Container(
+                                  padding: const EdgeInsets.all(AppSpacing.md),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.errorColor.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(AppRadius.md),
+                                    border: Border.all(color: AppTheme.errorColor.withOpacity(0.2)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(BootstrapIcons.exclamation_triangle, 
+                                        color: AppTheme.errorColor, size: 20),
+                                      const SizedBox(width: AppSpacing.md),
+                                      Expanded(
+                                        child: Text(
+                                          error.contains('Invalid credentials') 
+                                            ? 'The email or password you entered is incorrect.'
+                                            : error,
+                                          style: const TextStyle(
+                                            color: AppTheme.errorColor,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: AppSpacing.xl),
+                              SizedBox(
+                                height: 56,
+                                child: ElevatedButton(
+                                  onPressed: isLoading ? null : _login,
+                                  child: isLoading
+                                    ? const SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Text('Sign In'),
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.xl),
+                              Row(
+                                children: [
+                                  const Expanded(child: Divider()),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                                    child: Text(
+                                      'OR',
+                                      style: TextStyle(
+                                        color: AppTheme.textSecondaryLight.withOpacity(0.5),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  const Expanded(child: Divider()),
+                                ],
+                              ),
+                              const SizedBox(height: AppSpacing.xl),
+                              OutlinedButton.icon(
+                                onPressed: () => context.go('/setup'),
+                                icon: const Icon(BootstrapIcons.hospital, size: 18),
+                                label: const Text('Switch Facility'),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xxl),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'System Admin?',
+                              style: TextStyle(color: AppTheme.textSecondaryLight),
+                            ),
+                            TextButton(
+                              onPressed: () => context.go('/admin/login'),
+                              child: const Text('Admin Portal'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: () => context.go('/register'),
-                  child: const Text('Create a new facility account'),
-                ),
-                TextButton(
-                  onPressed: () => context.go('/setup'),
-                  child: const Text('Not your facility? Switch'),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
+}
+
+class _GridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 1.0;
+
+    const spacing = 40.0;
+    for (var i = 0.0; i < size.width; i += spacing) {
+      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
+    }
+    for (var i = 0.0; i < size.height; i += spacing) {
+      canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

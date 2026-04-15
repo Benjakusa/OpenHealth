@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/presentation/admin_login_screen.dart';
 import '../../features/auth/presentation/setup_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/auth_controller.dart';
@@ -24,31 +25,36 @@ import '../../features/ward/presentation/admission_form_screen.dart';
 import '../../features/ward/presentation/admission_detail_screen.dart';
 import '../../features/reports/presentation/reports_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
+import '../../features/admin/presentation/super_admin_dashboard.dart';
 import '../widgets/main_scaffold.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
 
   return GoRouter(
-    initialLocation: '/register',
+    initialLocation: '/setup',
     debugLogDiagnostics: true,
     redirect: (context, state) {
-      final isLoggedIn = authState.valueOrNull != null;
+      final user = authState.valueOrNull;
+      final isLoggedIn = user != null;
+      final isSuperAdmin = user?.role == 'SUPER_ADMIN';
+
       final isSetup = state.matchedLocation == '/setup';
       final isLogin = state.matchedLocation == '/login';
+      final isAdminLogin = state.matchedLocation == '/admin/login';
       final isRegister = state.matchedLocation == '/register';
 
       if (state.matchedLocation == '/') {
         if (!isLoggedIn) return '/login';
-        return '/patients';
+        return isSuperAdmin ? '/super-admin' : '/patients';
       }
 
-      if (!isSetup && !isLoggedIn && !isLogin && !isRegister) {
+      if (!isSetup && !isLoggedIn && !isLogin && !isAdminLogin && !isRegister) {
         return '/setup';
       }
 
-      if (isLoggedIn && (isLogin || isSetup || isRegister)) {
-        return '/patients';
+      if (isLoggedIn && (isLogin || isAdminLogin || isSetup || isRegister)) {
+        return isSuperAdmin ? '/super-admin' : '/patients';
       }
 
       return null;
@@ -63,8 +69,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
+        path: '/admin/login',
+        builder: (context, state) => const AdminLoginScreen(),
+      ),
+      GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/super-admin',
+        builder: (context, state) => const SuperAdminDashboard(),
       ),
       ShellRoute(
         builder: (context, state, child) => MainScaffold(child: child),

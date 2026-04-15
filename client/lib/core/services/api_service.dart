@@ -34,6 +34,9 @@ class ApiService {
         if (Environment.tenantId.isNotEmpty) {
           options.headers['X-Tenant-ID'] = Environment.tenantId;
         }
+        if (Environment.facilityId != null && Environment.facilityId!.isNotEmpty) {
+          options.headers['X-Facility-ID'] = Environment.facilityId;
+        }
         return handler.next(options);
       },
       onError: (error, handler) async {

@@ -1,0 +1,8 @@
+OpenHealth Server running on port 3000
+::ffff:127.0.0.1 - - [15/Apr/2026:13:56:21 +0000] "GET /health HTTP/1.1" 200 54 "-" "curl/7.81.0"
+Executing (default): SELECT "id", "tenant_id" AS "tenantId", "email", "password_hash" AS "passwordHash", "first_name" AS "firstName", "last_name" AS "lastName", "phone", "role", "facility_id" AS "facilityId", "status", "specialty", "qualification", "license_number" AS "licenseNumber", "department", "permissions", "settings", "avatar", "last_login_at" AS "lastLoginAt", "is_active" AS "isActive", "created_at" AS "createdAt", "updated_at" AS "updatedAt" FROM "users" AS "User" WHERE "User"."email" = 'tenant10@clinic.com' LIMIT 1;
+Executing (default): INSERT INTO "tenants" ("id","name","slug","schema","package","address","contacts","insurance_credentials","settings","status","subscription","storage","storage_limit","created_at","updated_at") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING "id","name","slug","schema","package","facility_type","facility_level","registration_number","keph_level","address","contacts","sha_facility_id","insurance_credentials","settings","status","subscription","storage","storage_limit","expires_at","last_sync_at","created_at","updated_at";
+Tenant registration error: TypeError: Cannot read properties of undefined (reading 'generateClinicCode')
+    at tenantRegister (/home/benjakusa/OpenHealth/server/src/controllers/auth.controller.js:243:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+::ffff:127.0.0.1 - - [15/Apr/2026:13:56:24 +0000] "POST /api/v1/auth/tenant-register HTTP/1.1" 500 33 "-" "curl/7.81.0"

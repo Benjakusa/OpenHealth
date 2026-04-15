@@ -56,6 +56,12 @@
       "languageVersion": "2.17"
     },
     {
+      "name": "bootstrap_icons",
+      "rootUri": "file:///home/benjakusa/.pub-cache/hosted/pub.dev/bootstrap_icons-1.13.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
       "name": "build",
       "rootUri": "file:///home/benjakusa/.pub-cache/hosted/pub.dev/build-2.4.1",
       "packageUri": "lib/",
@@ -360,6 +366,12 @@
       "rootUri": "file:///home/benjakusa/.pub-cache/hosted/pub.dev/go_router-13.2.5",
       "packageUri": "lib/",
       "languageVersion": "3.2"
+    },
+    {
+      "name": "google_fonts",
+      "rootUri": "file:///home/benjakusa/.pub-cache/hosted/pub.dev/google_fonts-6.3.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.14"
     },
     {
       "name": "graphs",
@@ -902,7 +914,7 @@
       "languageVersion": "3.0"
     }
   ],
-  "generated": "2026-04-15T11:40:17.335057Z",
+  "generated": "2026-04-15T12:49:27.757321Z",
   "generator": "pub",
   "generatorVersion": "3.5.3",
   "flutterRoot": "file:///home/benjakusa/Bloom/tools/flutter",

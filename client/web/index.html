@@ -1,15 +1,23 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <base href="$FLUTTER_BASE_HREF">
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="OpenHealth - Multi-tenant Healthcare Management SaaS">
-  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="OpenHealth">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <!-- Removed broken apple-touch-icon 404 -->
   <title>OpenHealth</title>
+
+  <!-- Fonts and Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
   <link rel="manifest" href="manifest.json">
   <script>
     var serviceWorkerVersion = null;
@@ -33,7 +41,9 @@
     }
   </script>
 </head>
+
 <body>
   <script src="main.dart.js" defer></script>
 </body>
+
 </html>
